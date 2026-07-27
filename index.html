@@ -111,9 +111,11 @@
         .is-open .book-inner {
             transform: translateX(25%);
         }
+        /* En móvil el libro ocupa casi todo el ancho: cualquier desplazamiento
+           lo saca de la pantalla y corta el texto de la página. */
         @media (max-width: 768px) {
             .is-open .book-inner {
-                transform: translateX(10%);
+                transform: translateX(0);
             }
         }
 
@@ -238,10 +240,19 @@
 
     <div id="library-view" class="absolute inset-0 bg-wood z-10 overflow-y-auto no-scrollbar pb-32 transition-opacity duration-500">
         <div class="sticky top-0 bg-black bg-opacity-50 backdrop-blur-sm p-6 flex justify-between items-center shadow-md z-20">
-            <h1 class="text-3xl md:text-4xl font-serif text-amber-100 drop-shadow-md">Mis Diarios</h1>
-            <button onclick="toggleEditMode()" id="edit-btn" class="text-amber-200 hover:text-white transition font-medium">
-                ✎ Editar
-            </button>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-serif text-amber-100 drop-shadow-md">Mis Diarios</h1>
+            <div class="flex items-center space-x-4 sm:space-x-5 text-lg sm:text-base shrink-0">
+                <button onclick="exportData()" class="text-amber-200 hover:text-white transition font-medium whitespace-nowrap" title="Exportar: guardar una copia de seguridad">
+                    ⤓<span class="hidden sm:inline"> Exportar</span>
+                </button>
+                <label class="text-amber-200 hover:text-white transition font-medium cursor-pointer whitespace-nowrap" title="Importar: restaurar desde una copia de seguridad">
+                    ⤒<span class="hidden sm:inline"> Importar</span>
+                    <input type="file" accept="application/json,.json" hidden onchange="handleImportFile(event)">
+                </label>
+                <button onclick="toggleEditMode()" id="edit-btn" class="text-amber-200 hover:text-white transition font-medium whitespace-nowrap">
+                    ✎<span class="hidden sm:inline"> Editar</span>
+                </button>
+            </div>
         </div>
         
         <div id="library-shelves" class="shelf-container mt-4">
@@ -253,7 +264,7 @@
         </button>
     </div>
 
-    <div id="reader-view" class="absolute inset-0 desk-texture z-20 hidden flex-col justify-center items-center opacity-0 transition-opacity duration-500">
+    <div id="reader-view" class="absolute inset-0 desk-texture z-20 hidden flex flex-col justify-center items-center opacity-0 transition-opacity duration-500">
         
         <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 pointer-events-none">
             <button onclick="closeBook()" class="pointer-events-auto px-5 py-2 bg-black bg-opacity-60 text-amber-100 border border-amber-900 rounded-full hover:bg-opacity-80 transition flex items-center shadow-xl">
@@ -346,7 +357,7 @@
     <!-- Custom Modal System -->
     <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 hidden z-[100] flex items-center justify-center backdrop-blur-sm transition-opacity">
         <!-- Message/Confirm Box -->
-        <div id="modal-box" class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-11/12 text-center transform scale-95 transition-transform hidden flex-col">
+        <div id="modal-box" class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-11/12 text-center transform scale-95 transition-transform hidden flex flex-col">
             <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-2 font-sans">Aviso</h3>
             <p id="modal-message" class="text-gray-600 mb-6 font-sans"></p>
             <div class="flex justify-center space-x-3 w-full">
@@ -356,7 +367,7 @@
         </div>
         
         <!-- Input Prompt Box -->
-        <div id="prompt-box" class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-11/12 transform scale-95 transition-transform hidden flex-col">
+        <div id="prompt-box" class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-11/12 transform scale-95 transition-transform hidden flex flex-col">
             <h3 id="prompt-title" class="text-xl font-bold text-gray-800 mb-4 font-sans text-center">Nuevo Diario</h3>
             <input type="text" id="prompt-input" class="w-full p-3 border-2 border-gray-300 rounded-lg mb-6 outline-none focus:border-amber-500 transition font-sans" placeholder="Ej. Viaje a Japón...">
             <div class="flex justify-center space-x-3 w-full">
@@ -524,8 +535,10 @@
         function toggleEditMode() {
             isEditMode = !isEditMode;
             const btn = document.getElementById('edit-btn');
-            btn.textContent = isEditMode ? 'Hecho' : '✎ Editar';
-            btn.className = isEditMode ? 'text-red-400 font-bold transition' : 'text-amber-200 hover:text-white transition font-medium';
+            btn.innerHTML = isEditMode ? '✓<span class="hidden sm:inline"> Hecho</span>' : '✎<span class="hidden sm:inline"> Editar</span>';
+            btn.className = isEditMode
+                ? 'text-red-400 font-bold transition whitespace-nowrap'
+                : 'text-amber-200 hover:text-white transition font-medium whitespace-nowrap';
             renderLibrary();
         }
 
@@ -560,6 +573,78 @@
             });
         }
 
+        // --- Copias de seguridad ---
+        // IndexedDB vive solo en este navegador y puede purgarse. Exportar/importar
+        // es la única forma de no perder los diarios al cambiar de móvil.
+        function exportData() {
+            if(journals.length === 0) {
+                Modal.showMsg('Nada que exportar', 'Todavía no tienes ningún diario en la estantería.');
+                return;
+            }
+            const payload = {
+                format: 'diario-viajes',
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                journals: journals
+            };
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `diarios-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            event.target.value = ''; // Permitir reimportar el mismo archivo
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                let incoming;
+                try {
+                    const data = JSON.parse(e.target.result);
+                    incoming = Array.isArray(data) ? data : data.journals;
+                } catch(err) {
+                    incoming = null;
+                }
+
+                const valid = Array.isArray(incoming)
+                    ? incoming.filter(j => j && typeof j.title === 'string' && Array.isArray(j.pages))
+                    : [];
+
+                if(valid.length === 0) {
+                    Modal.showMsg('Error al importar', 'No se ha podido leer el archivo. Comprueba que es un JSON exportado desde esta app.');
+                    return;
+                }
+
+                try {
+                    for(const j of valid) {
+                        // Los diarios se añaden, nunca sobrescriben: id nuevo si ya existe
+                        const collides = !j.id || journals.some(x => x.id === j.id);
+                        journals.push({
+                            id: collides ? 'journal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) : j.id,
+                            title: j.title,
+                            color: j.color || bookColors[Math.floor(Math.random() * bookColors.length)],
+                            pages: j.pages.length ? j.pages : [createEmptyPage()]
+                        });
+                        await saveJournalDB(journals[journals.length - 1]);
+                    }
+                    renderLibrary();
+                    Modal.showMsg('Importación completada', `Se han añadido ${valid.length} diario(s) a tu estantería.`);
+                } catch(err) {
+                    console.error(err);
+                    renderLibrary();
+                    Modal.showMsg('Error al guardar', 'No se han podido guardar todos los diarios. Puede que no quede espacio en el navegador.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
         function openJournal(journal) {
             currentJournal = journal;
             currentPageIndex = 0;
@@ -591,7 +676,8 @@
 
         function closeBook() {
             if(isRecording) toggleRecording(); // Parar grabación si la hay
-            
+            flushSave(); // No dejar cambios recientes sin guardar al salir
+
             document.querySelector('.book-wrapper').classList.remove('is-open');
             
             setTimeout(() => {
@@ -675,6 +761,14 @@
             saveTimeout = setTimeout(saveCurrentState, 800);
         }
 
+        // Vuelca al disco lo que haya pendiente ANTES de cambiar de página.
+        // Sin esto, el guardado retrasado se dispararía leyendo el DOM ya repintado
+        // y escribiría el contenido de la página nueva encima, perdiendo lo escrito.
+        function flushSave() {
+            clearTimeout(saveTimeout);
+            return saveCurrentState();
+        }
+
         async function saveCurrentState() {
             if(!currentJournal || !currentPage) return;
             
@@ -689,19 +783,22 @@
             if(idx !== -1) journals[idx] = currentJournal;
         }
 
-        function prevPage() {
+        async function prevPage() {
             if(currentPageIndex > 0) {
+                await flushSave();
                 currentPageIndex--;
                 renderCurrentPage();
             }
         }
-        function nextPage() {
+        async function nextPage() {
             if(currentPageIndex < currentJournal.pages.length - 1) {
+                await flushSave();
                 currentPageIndex++;
                 renderCurrentPage();
             }
         }
-        function addNewPage() {
+        async function addNewPage() {
+            await flushSave();
             currentJournal.pages.push(createEmptyPage());
             currentPageIndex = currentJournal.pages.length - 1;
             renderCurrentPage();
