@@ -234,23 +234,134 @@
             70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
+
+        /* --- Selector de idioma --- */
+        .flag-svg {
+            width: 28px;
+            height: 19px;
+            display: block;
+            border-radius: 2px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+        .lang-menu {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 0;
+            background: #1d1511;
+            border: 1px solid rgba(253, 230, 138, 0.2);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 14px 34px rgba(0,0,0,0.7);
+            z-index: 60;
+            min-width: 200px;
+        }
+        .lang-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 9px 10px;
+            border: none;
+            border-radius: 9px;
+            background: transparent;
+            color: #fde68a;
+            font-family: sans-serif;
+            font-size: 0.95rem;
+            text-align: left;
+            cursor: pointer;
+        }
+        .lang-item:hover { background: rgba(255,255,255,0.09); }
+        .lang-item.selected { background: rgba(255,255,255,0.14); font-weight: 700; color: #fff; }
+
+        /* --- Pasar página arrastrando --- */
+        /* pan-y: el navegador se queda el scroll vertical y a nosotros nos llegan
+           los gestos horizontales sin que los consuma. */
+        #page-scroller { touch-action: pan-y; }
+
+        .pages-3d { perspective: 1600px; }
+
+        .flip-under {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--paper-color);
+            border-radius: 2px 12px 12px 2px;
+            overflow: hidden;
+            z-index: 12;
+            display: none;
+        }
+        .flip-sheet {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            z-index: 14;
+            display: none;
+        }
+        .flip-under.active, .flip-sheet.active { display: block; }
+        .flip-under, .flip-sheet { pointer-events: none; }
+        .flip-sheet.animating { transition: transform 0.5s cubic-bezier(0.25, 0.6, 0.3, 1); }
+
+        .flip-face {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            background: var(--paper-color);
+            overflow: hidden;
+            border-radius: 2px 12px 12px 2px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.35);
+        }
+        .flip-face-back {
+            transform: rotateY(180deg);
+            border-radius: 12px 2px 2px 12px;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 12px, rgba(0,0,0,0.02) 12px, rgba(0,0,0,0.02) 24px);
+        }
+        /* Sombra del pliegue: se oscurece a medida que gira la hoja */
+        .flip-shade {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(to right, rgba(0,0,0,0.5), rgba(0,0,0,0) 50%);
+            opacity: 0;
+        }
+        .flip-replica {
+            width: 100%;
+            height: 100%;
+            padding: 40px 25px;
+            overflow: hidden;
+        }
+
+        /* Tira de polaroids (varias fotos por página) */
+        .polaroid-thumb { width: 150px; }
+        @media (min-width: 640px) { .polaroid-thumb { width: 175px; } }
     </style>
 </head>
 <body>
 
     <div id="library-view" class="absolute inset-0 bg-wood z-10 overflow-y-auto no-scrollbar pb-32 transition-opacity duration-500">
         <div class="sticky top-0 bg-black bg-opacity-50 backdrop-blur-sm p-6 flex justify-between items-center shadow-md z-20">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-serif text-amber-100 drop-shadow-md">Mis Diarios</h1>
+            <div class="flex items-center gap-3 min-w-0">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-serif text-amber-100 drop-shadow-md truncate" data-i18n="appTitle">Els meus diaris</h1>
+                <div class="relative shrink-0">
+                    <button id="lang-btn" onclick="toggleLangMenu(event)" class="flex items-center gap-1 p-1 rounded-lg hover:bg-white/10 transition" aria-haspopup="true" aria-expanded="false">
+                        <span id="lang-flag"></span>
+                        <svg class="w-3 h-3 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="lang-menu" class="lang-menu hidden"></div>
+                </div>
+            </div>
             <div class="flex items-center space-x-4 sm:space-x-5 text-lg sm:text-base shrink-0">
-                <button onclick="exportData()" class="text-amber-200 hover:text-white transition font-medium whitespace-nowrap" title="Exportar: guardar una copia de seguridad">
-                    ⤓<span class="hidden sm:inline"> Exportar</span>
+                <button onclick="exportData()" class="text-amber-200 hover:text-white transition font-medium whitespace-nowrap" data-i18n-title="exportTitle">
+                    ⤓<span class="hidden sm:inline ml-1" data-i18n="export">Exportar</span>
                 </button>
-                <label class="text-amber-200 hover:text-white transition font-medium cursor-pointer whitespace-nowrap" title="Importar: restaurar desde una copia de seguridad">
-                    ⤒<span class="hidden sm:inline"> Importar</span>
+                <label class="text-amber-200 hover:text-white transition font-medium cursor-pointer whitespace-nowrap" data-i18n-title="importTitle">
+                    ⤒<span class="hidden sm:inline ml-1" data-i18n="import">Importar</span>
                     <input type="file" accept="application/json,.json" hidden onchange="handleImportFile(event)">
                 </label>
                 <button onclick="toggleEditMode()" id="edit-btn" class="text-amber-200 hover:text-white transition font-medium whitespace-nowrap">
-                    ✎<span class="hidden sm:inline"> Editar</span>
+                    ✎<span class="hidden sm:inline ml-1" data-i18n="edit">Editar</span>
                 </button>
             </div>
         </div>
@@ -269,7 +380,10 @@
         <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 pointer-events-none">
             <button onclick="closeBook()" class="pointer-events-auto px-5 py-2 bg-black bg-opacity-60 text-amber-100 border border-amber-900 rounded-full hover:bg-opacity-80 transition flex items-center shadow-xl">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                Cerrar Diario
+                <span data-i18n="closeJournal">Tancar diari</span>
+            </button>
+            <button onclick="showBookmarks()" class="pointer-events-auto px-4 py-2 bg-black bg-opacity-60 text-amber-100 border border-amber-900 rounded-full hover:bg-opacity-80 transition flex items-center shadow-xl" data-i18n-title="bookmarksTitle">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3a2 2 0 00-2 2v16l9-4 9 4V5a2 2 0 00-2-2H5z"></path></svg>
             </button>
         </div>
         
@@ -283,22 +397,26 @@
                 <div class="pages-3d">
                     <div class="page-content-scroll relative" id="page-scroller">
                         
-                        <div id="bookmark-ribbon" onclick="toggleBookmark()" class="bookmark" title="Punto de libro"></div>
+                        <div id="bookmark-ribbon" onclick="toggleBookmark()" class="bookmark" data-i18n-title="bookmarkRibbon"></div>
+
+                        <input type="text" id="page-title" class="w-full bg-transparent text-3xl md:text-4xl font-serif text-gray-800 border-none outline-none mb-8 placeholder-gray-400 text-center font-bold" data-i18n-placeholder="pageTitlePlaceholder" oninput="debounceSave()">
                         
-                        <input type="text" id="page-title" class="w-full bg-transparent text-3xl md:text-4xl font-serif text-gray-800 border-none outline-none mb-8 placeholder-gray-400 text-center font-bold" placeholder="Título de la página..." oninput="debounceSave()">
-                        
-                        <div class="flex flex-col items-center justify-center mb-8 relative">
-                            <label id="take-photo-container" class="cursor-pointer border-2 border-dashed border-gray-400 w-full max-w-sm py-12 rounded-xl text-gray-500 hover:bg-black hover:bg-opacity-5 transition flex flex-col items-center group">
-                                <span class="text-5xl mb-3 transform group-hover:scale-110 transition drop-shadow-sm">📸</span>
-                                <span class="font-medium font-sans">Tomar Foto</span>
-                                <!-- Input que abre directamente la cámara en móviles -->
+                        <!-- Tira de polaroids: se rellena por JS desde currentPage.photos -->
+                        <div id="photos-strip" class="flex flex-wrap justify-center items-start gap-6 mb-6"></div>
+
+                        <div class="flex justify-center gap-4 mb-8 font-sans">
+                            <label class="cursor-pointer border-2 border-dashed border-gray-400 rounded-xl px-6 py-5 text-gray-500 hover:bg-black hover:bg-opacity-5 transition flex flex-col items-center group">
+                                <span class="text-4xl mb-2 transform group-hover:scale-110 transition drop-shadow-sm">📸</span>
+                                <span class="font-medium text-sm" data-i18n="camera">Càmera</span>
+                                <!-- capture: abre directamente la cámara en móviles -->
                                 <input type="file" accept="image/*" capture="environment" hidden onchange="handlePhotoCapture(event)">
                             </label>
-                            
-                            <div id="polaroid-container" class="hidden polaroid transform rotate-2 hover:rotate-0 transition duration-300 relative w-full max-w-sm mx-auto">
-                                <button onclick="removePhoto()" class="absolute -top-4 -right-4 bg-gray-800 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-600 transition z-10 font-sans border-2 border-white">✕</button>
-                                <img id="page-photo" class="w-full h-auto object-cover rounded-sm" src="" alt="Captura">
-                            </div>
+                            <label class="cursor-pointer border-2 border-dashed border-gray-400 rounded-xl px-6 py-5 text-gray-500 hover:bg-black hover:bg-opacity-5 transition flex flex-col items-center group">
+                                <span class="text-4xl mb-2 transform group-hover:scale-110 transition drop-shadow-sm">🖼️</span>
+                                <span class="font-medium text-sm" data-i18n="gallery">Galeria</span>
+                                <!-- Sin capture: deja elegir fotos ya hechas, y varias a la vez -->
+                                <input type="file" accept="image/*" multiple hidden onchange="handlePhotoCapture(event)">
+                            </label>
                         </div>
 
                         <div id="metadata-container" class="hidden w-full max-w-sm mx-auto mb-8 bg-black bg-opacity-[0.03] rounded-lg p-3 flex flex-col items-center justify-center space-y-2 text-sm text-gray-700 font-sans border border-gray-300 shadow-inner">
@@ -325,16 +443,33 @@
                             </div>
                         </div>
 
-                        <textarea id="page-text" class="w-full min-h-[350px] bg-transparent border-none outline-none resize-none font-serif text-gray-800 text-lg custom-lines p-1 mb-8" placeholder="Escribe los detalles de tu aventura aquí..." oninput="debounceSave()"></textarea>
+                        <textarea id="page-text" class="w-full min-h-[350px] bg-transparent border-none outline-none resize-none font-serif text-gray-800 text-lg custom-lines p-1 mb-8" data-i18n-placeholder="textPlaceholder" oninput="debounceSave()"></textarea>
 
                         <div class="flex justify-between items-center border-t border-gray-300 pt-6 font-sans">
-                            <button onclick="prevPage()" class="p-2 text-gray-500 hover:text-gray-900 transition flex items-center bg-white bg-opacity-50 rounded-lg shadow-sm"><svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Ant.</button>
+                            <button onclick="prevPage()" class="p-2 text-gray-500 hover:text-gray-900 transition flex items-center bg-white bg-opacity-50 rounded-lg shadow-sm"><svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> <span data-i18n="prev">Ant.</span></button>
                             <span class="text-sm text-gray-600 font-bold tracking-widest bg-white bg-opacity-50 px-3 py-1 rounded-full shadow-inner" id="page-indicator">1 / 1</span>
-                            <button onclick="nextPage()" class="p-2 text-gray-500 hover:text-gray-900 transition flex items-center bg-white bg-opacity-50 rounded-lg shadow-sm">Sig. <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                            <button onclick="nextPage()" class="p-2 text-gray-500 hover:text-gray-900 transition flex items-center bg-white bg-opacity-50 rounded-lg shadow-sm"><span data-i18n="next">Seg.</span> <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
                         </div>
-                        <button onclick="addNewPage()" class="w-full mt-4 py-3 bg-transparent border-2 border-dashed border-gray-400 text-gray-600 rounded-lg hover:bg-black hover:bg-opacity-5 transition font-medium font-sans">
-                            + Añadir nueva página
-                        </button>
+                        <div class="flex gap-3 mt-4 font-sans">
+                            <button onclick="addNewPage()" class="flex-1 py-3 bg-transparent border-2 border-dashed border-gray-400 text-gray-600 rounded-lg hover:bg-black hover:bg-opacity-5 transition font-medium" data-i18n="addPage">
+                                + Afegir pàgina nova
+                            </button>
+                            <button onclick="deleteCurrentPage()" class="px-4 py-3 bg-transparent border-2 border-dashed border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition font-medium flex items-center justify-center" data-i18n-title="deletePage">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Capas del paso de página: réplicas estáticas, no interactivas -->
+                    <div id="flip-under" class="flip-under"><div class="flip-replica" id="flip-under-content"></div></div>
+                    <div id="flip-sheet" class="flip-sheet">
+                        <div class="flip-face flip-face-front">
+                            <div class="flip-replica" id="flip-sheet-content"></div>
+                            <div class="flip-shade" id="flip-shade-front"></div>
+                        </div>
+                        <div class="flip-face flip-face-back">
+                            <div class="flip-shade" id="flip-shade-back"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -344,7 +479,7 @@
                     <div class="cover-face-front flex flex-col items-center justify-center p-8 relative overflow-hidden" id="book-front-face">
                         <div class="absolute inset-4 border-2 border-white border-opacity-30 rounded-lg pointer-events-none" style="border-style: double; border-width: 4px;"></div>
                         <h2 class="text-4xl md:text-5xl font-serif text-center text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] z-10 font-bold leading-tight" id="cover-title">Title</h2>
-                        <div class="mt-10 px-6 py-2 bg-black bg-opacity-40 rounded-full border border-white border-opacity-20 text-white text-xs md:text-sm uppercase tracking-[0.3em] z-10 shadow-inner">Diario de Viaje</div>
+                        <div class="mt-10 px-6 py-2 bg-black bg-opacity-40 rounded-full border border-white border-opacity-20 text-white text-xs md:text-sm uppercase tracking-[0.3em] z-10 shadow-inner" data-i18n="coverBadge">Diari de viatge</div>
                     </div>
                     <!-- Interior de la tapa -->
                     <div class="cover-face-back"></div>
@@ -361,19 +496,27 @@
             <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-2 font-sans">Aviso</h3>
             <p id="modal-message" class="text-gray-600 mb-6 font-sans"></p>
             <div class="flex justify-center space-x-3 w-full">
-                <button id="modal-cancel" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium">Cancelar</button>
-                <button id="modal-confirm" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md font-medium">Aceptar</button>
+                <button id="modal-cancel" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium" data-i18n="cancel">Cancel·lar</button>
+                <button id="modal-confirm" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md font-medium" data-i18n="accept">Acceptar</button>
             </div>
         </div>
-        
+
         <!-- Input Prompt Box -->
         <div id="prompt-box" class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-11/12 transform scale-95 transition-transform hidden flex flex-col">
-            <h3 id="prompt-title" class="text-xl font-bold text-gray-800 mb-4 font-sans text-center">Nuevo Diario</h3>
-            <input type="text" id="prompt-input" class="w-full p-3 border-2 border-gray-300 rounded-lg mb-6 outline-none focus:border-amber-500 transition font-sans" placeholder="Ej. Viaje a Japón...">
+            <h3 id="prompt-title" class="text-xl font-bold text-gray-800 mb-4 font-sans text-center">Nou diari</h3>
+            <input type="text" id="prompt-input" class="w-full p-3 border-2 border-gray-300 rounded-lg mb-4 outline-none focus:border-amber-500 transition font-sans" data-i18n-placeholder="journalPlaceholder">
+            <div id="prompt-colors" class="hidden flex-wrap justify-center gap-3 mb-6"></div>
             <div class="flex justify-center space-x-3 w-full">
-                <button id="prompt-cancel" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium">Cancelar</button>
+                <button id="prompt-cancel" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium" data-i18n="cancel">Cancel·lar</button>
                 <button id="prompt-confirm" class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition shadow-md font-medium">Crear</button>
             </div>
+        </div>
+
+        <!-- Lista (índice de páginas marcadas) -->
+        <div id="list-box" class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-11/12 transform scale-95 transition-transform hidden flex flex-col">
+            <h3 id="list-title" class="text-xl font-bold text-gray-800 mb-4 font-sans text-center">Pàgines marcades</h3>
+            <div id="list-items" class="overflow-y-auto max-h-72 -mx-2 px-2 mb-5 font-sans"></div>
+            <button id="list-close" class="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium" data-i18n="close">Tancar</button>
         </div>
     </div>
 
@@ -387,6 +530,245 @@
         let currentPageIndex = 0;
         let currentPage = null;
         let isEditMode = false;
+
+        // --- Idiomas ---
+        // Las banderas van en SVG y no en emoji: la senyera no tiene emoji propio
+        // (la secuencia de etiquetas no está en el conjunto estándar y no se dibuja
+        // en la mayoría de sistemas), así que se dibujan todas igual por coherencia.
+        const STAR = '0,-1 0.2245,-0.309 0.951,-0.309 0.363,0.118 0.588,0.809 0,0.382 -0.588,0.809 -0.363,0.118 -0.951,-0.309 -0.2245,-0.309';
+        const FLAGS = {
+            ca: `<svg class="flag-svg" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FCDD09"/><g fill="#DA121A"><rect y="2.22" width="30" height="2.22"/><rect y="6.67" width="30" height="2.22"/><rect y="11.11" width="30" height="2.22"/><rect y="15.56" width="30" height="2.22"/></g></svg>`,
+            es: `<svg class="flag-svg" viewBox="0 0 30 20"><rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/></svg>`,
+            en: `<svg class="flag-svg" viewBox="0 0 30 20"><rect width="30" height="20" fill="#012169"/><path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" stroke-width="4"/><path d="M0,0 L30,20 M30,0 L0,20" stroke="#C8102E" stroke-width="2"/><path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6"/><path d="M15,0 V20 M0,10 H30" stroke="#C8102E" stroke-width="3.5"/></svg>`,
+            fr: `<svg class="flag-svg" viewBox="0 0 30 20"><rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#002395"/><rect x="20" width="10" height="20" fill="#ED2939"/></svg>`,
+            de: `<svg class="flag-svg" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFCE00"/><rect width="30" height="13.33" fill="#DD0000"/><rect width="30" height="6.67" fill="#000"/></svg>`,
+            zh: `<svg class="flag-svg" viewBox="0 0 30 20"><rect width="30" height="20" fill="#DE2910"/><g fill="#FFDE00"><polygon points="${STAR}" transform="translate(5,5) scale(3)"/><polygon points="${STAR}" transform="translate(10.5,2) scale(1)"/><polygon points="${STAR}" transform="translate(12.5,4.5) scale(1)"/><polygon points="${STAR}" transform="translate(12.5,7.5) scale(1)"/><polygon points="${STAR}" transform="translate(10.5,9.8) scale(1)"/></g></svg>`
+        };
+        const LANG_NAMES = { ca: 'Català', es: 'Castellano', en: 'English', fr: 'Français', de: 'Deutsch', zh: '中文' };
+        const LANGS = ['ca', 'es', 'en', 'fr', 'de', 'zh'];
+        const LANG_KEY = 'diario_viajes_lang';
+
+        const I18N = {
+            ca: {
+                appTitle: 'Els meus diaris', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Fet',
+                exportTitle: 'Exportar: desar una còpia de seguretat', importTitle: 'Importar: restaurar des d\'una còpia',
+                emptyShelf: 'El teu prestatge és buit.', emptyShelf2: 'Crea el teu primer diari de viatge a sota.',
+                closeJournal: 'Tancar diari', bookmarksTitle: 'Pàgines marcades', bookmarkRibbon: 'Punt de llibre',
+                pageTitlePlaceholder: 'Títol de la pàgina...', camera: 'Càmera', gallery: 'Galeria',
+                recordVoice: 'Gravar nota de veu', stopRecording: 'Aturar gravació', processing: 'Processant...',
+                textPlaceholder: 'Escriu aquí els detalls de la teva aventura...',
+                prev: 'Ant.', next: 'Seg.', addPage: '+ Afegir pàgina nova', deletePage: 'Esborrar pàgina',
+                coverBadge: 'Diari de viatge',
+                searchingLocation: 'Cercant ubicació...', unknownLocation: 'Ubicació desconeguda', locationUnavailable: 'Ubicació no disponible',
+                notice: 'Avís', cancel: 'Cancel·lar', accept: 'Acceptar', create: 'Crear', save: 'Desar', close: 'Tancar',
+                newJournalTitle: 'Títol del nou diari', journalPlaceholder: 'Ex. Viatge al Japó...', renameJournal: 'Reanomenar diari',
+                deleteJournalTitle: 'Eliminar diari', deleteJournalMsg: 'Segur que vols cremar aquest diari? Es perdran totes les seves pàgines i records.',
+                deletePageTitle: 'Esborrar pàgina', deletePageMsg: 'Segur que vols esborrar aquesta pàgina? Es perdran la foto, l\'àudio i el text.',
+                deletePhotoTitle: 'Esborrar foto', deletePhotoMsg: 'Segur que vols treure aquesta foto?',
+                deleteAudioTitle: 'Esborrar àudio', deleteAudioMsg: 'Vols eliminar aquesta nota de veu?',
+                micErrorTitle: 'Error de micròfon', micErrorMsg: 'No s\'ha pogut accedir al micròfon. Comprova els permisos del navegador.',
+                saveErrorTitle: 'No s\'ha pogut desar', saveErrorMsg: 'El navegador ha rebutjat desar els canvis. Potser no queda espai. Exporta una còpia de seguretat i esborra fotos o àudios que ja no necessitis.',
+                createErrorTitle: 'No s\'ha pogut crear el diari', createErrorMsg: 'El navegador ha rebutjat desar-lo. Potser no queda espai.',
+                nothingToExportTitle: 'Res per exportar', nothingToExportMsg: 'Encara no tens cap diari al prestatge.',
+                importOkTitle: 'Importació completada', importOkMsg: 'S\'han afegit {n} diari(s) al teu prestatge.',
+                importErrorTitle: 'Error en importar', importErrorMsg: 'No s\'ha pogut llegir el fitxer. Comprova que és un JSON exportat des d\'aquesta app.',
+                importSaveErrorTitle: 'Error en desar', importSaveErrorMsg: 'No s\'han pogut desar tots els diaris. Potser no queda espai al navegador.',
+                bookmarksListTitle: 'Pàgines marcades', noBookmarks: 'Encara no has marcat cap pàgina. Toca la cinta de dalt a la dreta per marcar-ne una.',
+                pageN: 'Pàgina {n}', untitled: '(sense títol)'
+            },
+            es: {
+                appTitle: 'Mis diarios', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Hecho',
+                exportTitle: 'Exportar: guardar una copia de seguridad', importTitle: 'Importar: restaurar desde una copia',
+                emptyShelf: 'Tu estantería está vacía.', emptyShelf2: 'Crea tu primer diario de viaje abajo.',
+                closeJournal: 'Cerrar diario', bookmarksTitle: 'Páginas marcadas', bookmarkRibbon: 'Punto de libro',
+                pageTitlePlaceholder: 'Título de la página...', camera: 'Cámara', gallery: 'Galería',
+                recordVoice: 'Grabar nota de voz', stopRecording: 'Detener grabación', processing: 'Procesando...',
+                textPlaceholder: 'Escribe aquí los detalles de tu aventura...',
+                prev: 'Ant.', next: 'Sig.', addPage: '+ Añadir nueva página', deletePage: 'Borrar página',
+                coverBadge: 'Diario de viaje',
+                searchingLocation: 'Buscando ubicación...', unknownLocation: 'Ubicación desconocida', locationUnavailable: 'Ubicación no disponible',
+                notice: 'Aviso', cancel: 'Cancelar', accept: 'Aceptar', create: 'Crear', save: 'Guardar', close: 'Cerrar',
+                newJournalTitle: 'Título del nuevo diario', journalPlaceholder: 'Ej. Viaje a Japón...', renameJournal: 'Renombrar diario',
+                deleteJournalTitle: 'Eliminar diario', deleteJournalMsg: '¿Seguro que quieres quemar este diario? Se perderán todas sus páginas y recuerdos.',
+                deletePageTitle: 'Borrar página', deletePageMsg: '¿Seguro que quieres borrar esta página? Se perderán la foto, el audio y el texto.',
+                deletePhotoTitle: 'Borrar foto', deletePhotoMsg: '¿Seguro que quieres quitar esta foto?',
+                deleteAudioTitle: 'Borrar audio', deleteAudioMsg: '¿Quieres eliminar esta nota de voz?',
+                micErrorTitle: 'Error de micrófono', micErrorMsg: 'No se pudo acceder al micrófono. Comprueba los permisos de tu navegador.',
+                saveErrorTitle: 'No se ha podido guardar', saveErrorMsg: 'El navegador ha rechazado guardar los cambios. Puede que no quede espacio. Exporta una copia de seguridad y borra fotos o audios que ya no necesites.',
+                createErrorTitle: 'No se ha podido crear el diario', createErrorMsg: 'El navegador ha rechazado guardarlo. Puede que no quede espacio.',
+                nothingToExportTitle: 'Nada que exportar', nothingToExportMsg: 'Todavía no tienes ningún diario en la estantería.',
+                importOkTitle: 'Importación completada', importOkMsg: 'Se han añadido {n} diario(s) a tu estantería.',
+                importErrorTitle: 'Error al importar', importErrorMsg: 'No se ha podido leer el archivo. Comprueba que es un JSON exportado desde esta app.',
+                importSaveErrorTitle: 'Error al guardar', importSaveErrorMsg: 'No se han podido guardar todos los diarios. Puede que no quede espacio en el navegador.',
+                bookmarksListTitle: 'Páginas marcadas', noBookmarks: 'Todavía no has marcado ninguna página. Toca la cinta de arriba a la derecha para marcar una.',
+                pageN: 'Página {n}', untitled: '(sin título)'
+            },
+            en: {
+                appTitle: 'My journals', export: 'Export', import: 'Import', edit: 'Edit', done: 'Done',
+                exportTitle: 'Export: save a backup', importTitle: 'Import: restore from a backup',
+                emptyShelf: 'Your shelf is empty.', emptyShelf2: 'Create your first travel journal below.',
+                closeJournal: 'Close journal', bookmarksTitle: 'Bookmarked pages', bookmarkRibbon: 'Bookmark',
+                pageTitlePlaceholder: 'Page title...', camera: 'Camera', gallery: 'Gallery',
+                recordVoice: 'Record voice note', stopRecording: 'Stop recording', processing: 'Processing...',
+                textPlaceholder: 'Write the details of your adventure here...',
+                prev: 'Prev', next: 'Next', addPage: '+ Add new page', deletePage: 'Delete page',
+                coverBadge: 'Travel journal',
+                searchingLocation: 'Finding location...', unknownLocation: 'Unknown location', locationUnavailable: 'Location unavailable',
+                notice: 'Notice', cancel: 'Cancel', accept: 'OK', create: 'Create', save: 'Save', close: 'Close',
+                newJournalTitle: 'New journal title', journalPlaceholder: 'E.g. Trip to Japan...', renameJournal: 'Rename journal',
+                deleteJournalTitle: 'Delete journal', deleteJournalMsg: 'Are you sure you want to burn this journal? All its pages and memories will be lost.',
+                deletePageTitle: 'Delete page', deletePageMsg: 'Are you sure you want to delete this page? Its photos, audio and text will be lost.',
+                deletePhotoTitle: 'Delete photo', deletePhotoMsg: 'Are you sure you want to remove this photo?',
+                deleteAudioTitle: 'Delete audio', deleteAudioMsg: 'Do you want to delete this voice note?',
+                micErrorTitle: 'Microphone error', micErrorMsg: 'Could not access the microphone. Check your browser permissions.',
+                saveErrorTitle: 'Could not save', saveErrorMsg: 'The browser refused to save your changes. You may be out of space. Export a backup and delete photos or audio you no longer need.',
+                createErrorTitle: 'Could not create the journal', createErrorMsg: 'The browser refused to save it. You may be out of space.',
+                nothingToExportTitle: 'Nothing to export', nothingToExportMsg: 'You do not have any journals on the shelf yet.',
+                importOkTitle: 'Import complete', importOkMsg: '{n} journal(s) added to your shelf.',
+                importErrorTitle: 'Import error', importErrorMsg: 'The file could not be read. Check that it is a JSON exported from this app.',
+                importSaveErrorTitle: 'Save error', importSaveErrorMsg: 'Not all journals could be saved. The browser may be out of space.',
+                bookmarksListTitle: 'Bookmarked pages', noBookmarks: 'You have not bookmarked any page yet. Tap the ribbon at the top right to bookmark one.',
+                pageN: 'Page {n}', untitled: '(untitled)'
+            },
+            fr: {
+                appTitle: 'Mes carnets', export: 'Exporter', import: 'Importer', edit: 'Modifier', done: 'Terminé',
+                exportTitle: 'Exporter : enregistrer une sauvegarde', importTitle: 'Importer : restaurer depuis une sauvegarde',
+                emptyShelf: 'Votre étagère est vide.', emptyShelf2: 'Créez votre premier carnet de voyage ci-dessous.',
+                closeJournal: 'Fermer le carnet', bookmarksTitle: 'Pages marquées', bookmarkRibbon: 'Marque-page',
+                pageTitlePlaceholder: 'Titre de la page...', camera: 'Appareil photo', gallery: 'Galerie',
+                recordVoice: 'Enregistrer une note vocale', stopRecording: 'Arrêter l\'enregistrement', processing: 'Traitement...',
+                textPlaceholder: 'Écrivez ici les détails de votre aventure...',
+                prev: 'Préc.', next: 'Suiv.', addPage: '+ Ajouter une page', deletePage: 'Supprimer la page',
+                coverBadge: 'Carnet de voyage',
+                searchingLocation: 'Recherche du lieu...', unknownLocation: 'Lieu inconnu', locationUnavailable: 'Lieu indisponible',
+                notice: 'Avis', cancel: 'Annuler', accept: 'Valider', create: 'Créer', save: 'Enregistrer', close: 'Fermer',
+                newJournalTitle: 'Titre du nouveau carnet', journalPlaceholder: 'Ex. Voyage au Japon...', renameJournal: 'Renommer le carnet',
+                deleteJournalTitle: 'Supprimer le carnet', deleteJournalMsg: 'Voulez-vous vraiment brûler ce carnet ? Toutes ses pages et ses souvenirs seront perdus.',
+                deletePageTitle: 'Supprimer la page', deletePageMsg: 'Voulez-vous vraiment supprimer cette page ? Les photos, l\'audio et le texte seront perdus.',
+                deletePhotoTitle: 'Supprimer la photo', deletePhotoMsg: 'Voulez-vous vraiment retirer cette photo ?',
+                deleteAudioTitle: 'Supprimer l\'audio', deleteAudioMsg: 'Voulez-vous supprimer cette note vocale ?',
+                micErrorTitle: 'Erreur de microphone', micErrorMsg: 'Impossible d\'accéder au microphone. Vérifiez les autorisations de votre navigateur.',
+                saveErrorTitle: 'Enregistrement impossible', saveErrorMsg: 'Le navigateur a refusé d\'enregistrer les modifications. L\'espace est peut-être insuffisant. Exportez une sauvegarde et supprimez les photos ou audios inutiles.',
+                createErrorTitle: 'Création du carnet impossible', createErrorMsg: 'Le navigateur a refusé de l\'enregistrer. L\'espace est peut-être insuffisant.',
+                nothingToExportTitle: 'Rien à exporter', nothingToExportMsg: 'Vous n\'avez encore aucun carnet sur l\'étagère.',
+                importOkTitle: 'Importation terminée', importOkMsg: '{n} carnet(s) ajouté(s) à votre étagère.',
+                importErrorTitle: 'Erreur d\'importation', importErrorMsg: 'Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit d\'un JSON exporté depuis cette application.',
+                importSaveErrorTitle: 'Erreur d\'enregistrement', importSaveErrorMsg: 'Tous les carnets n\'ont pas pu être enregistrés. Le navigateur manque peut-être d\'espace.',
+                bookmarksListTitle: 'Pages marquées', noBookmarks: 'Vous n\'avez encore marqué aucune page. Touchez le ruban en haut à droite pour en marquer une.',
+                pageN: 'Page {n}', untitled: '(sans titre)'
+            },
+            de: {
+                appTitle: 'Meine Tagebücher', export: 'Exportieren', import: 'Importieren', edit: 'Bearbeiten', done: 'Fertig',
+                exportTitle: 'Exportieren: eine Sicherung speichern', importTitle: 'Importieren: aus einer Sicherung wiederherstellen',
+                emptyShelf: 'Dein Regal ist leer.', emptyShelf2: 'Erstelle unten dein erstes Reisetagebuch.',
+                closeJournal: 'Tagebuch schließen', bookmarksTitle: 'Markierte Seiten', bookmarkRibbon: 'Lesezeichen',
+                pageTitlePlaceholder: 'Seitentitel...', camera: 'Kamera', gallery: 'Galerie',
+                recordVoice: 'Sprachnotiz aufnehmen', stopRecording: 'Aufnahme stoppen', processing: 'Wird verarbeitet...',
+                textPlaceholder: 'Schreibe hier die Einzelheiten deines Abenteuers...',
+                prev: 'Zurück', next: 'Weiter', addPage: '+ Neue Seite', deletePage: 'Seite löschen',
+                coverBadge: 'Reisetagebuch',
+                searchingLocation: 'Standort wird gesucht...', unknownLocation: 'Unbekannter Ort', locationUnavailable: 'Standort nicht verfügbar',
+                notice: 'Hinweis', cancel: 'Abbrechen', accept: 'OK', create: 'Erstellen', save: 'Speichern', close: 'Schließen',
+                newJournalTitle: 'Titel des neuen Tagebuchs', journalPlaceholder: 'z. B. Reise nach Japan...', renameJournal: 'Tagebuch umbenennen',
+                deleteJournalTitle: 'Tagebuch löschen', deleteJournalMsg: 'Willst du dieses Tagebuch wirklich verbrennen? Alle Seiten und Erinnerungen gehen verloren.',
+                deletePageTitle: 'Seite löschen', deletePageMsg: 'Willst du diese Seite wirklich löschen? Fotos, Audio und Text gehen verloren.',
+                deletePhotoTitle: 'Foto löschen', deletePhotoMsg: 'Willst du dieses Foto wirklich entfernen?',
+                deleteAudioTitle: 'Audio löschen', deleteAudioMsg: 'Willst du diese Sprachnotiz löschen?',
+                micErrorTitle: 'Mikrofonfehler', micErrorMsg: 'Kein Zugriff auf das Mikrofon. Prüfe die Berechtigungen deines Browsers.',
+                saveErrorTitle: 'Speichern fehlgeschlagen', saveErrorMsg: 'Der Browser hat das Speichern abgelehnt. Möglicherweise ist kein Platz mehr frei. Exportiere eine Sicherung und lösche nicht mehr benötigte Fotos oder Audios.',
+                createErrorTitle: 'Tagebuch konnte nicht erstellt werden', createErrorMsg: 'Der Browser hat das Speichern abgelehnt. Möglicherweise ist kein Platz mehr frei.',
+                nothingToExportTitle: 'Nichts zu exportieren', nothingToExportMsg: 'Du hast noch kein Tagebuch im Regal.',
+                importOkTitle: 'Import abgeschlossen', importOkMsg: '{n} Tagebuch/Tagebücher zu deinem Regal hinzugefügt.',
+                importErrorTitle: 'Importfehler', importErrorMsg: 'Die Datei konnte nicht gelesen werden. Prüfe, ob es eine aus dieser App exportierte JSON-Datei ist.',
+                importSaveErrorTitle: 'Speicherfehler', importSaveErrorMsg: 'Es konnten nicht alle Tagebücher gespeichert werden. Im Browser ist möglicherweise kein Platz mehr.',
+                bookmarksListTitle: 'Markierte Seiten', noBookmarks: 'Du hast noch keine Seite markiert. Tippe oben rechts auf das Lesezeichenband, um eine zu markieren.',
+                pageN: 'Seite {n}', untitled: '(ohne Titel)'
+            },
+            zh: {
+                appTitle: '我的日记', export: '导出', import: '导入', edit: '编辑', done: '完成',
+                exportTitle: '导出：保存备份', importTitle: '导入：从备份恢复',
+                emptyShelf: '你的书架是空的。', emptyShelf2: '在下方创建你的第一本旅行日记。',
+                closeJournal: '关闭日记', bookmarksTitle: '书签页', bookmarkRibbon: '书签',
+                pageTitlePlaceholder: '页面标题…', camera: '相机', gallery: '相册',
+                recordVoice: '录制语音笔记', stopRecording: '停止录音', processing: '处理中…',
+                textPlaceholder: '在这里写下你的旅途细节…',
+                prev: '上一页', next: '下一页', addPage: '+ 添加新页', deletePage: '删除本页',
+                coverBadge: '旅行日记',
+                searchingLocation: '正在查找位置…', unknownLocation: '未知位置', locationUnavailable: '无法获取位置',
+                notice: '提示', cancel: '取消', accept: '确定', create: '创建', save: '保存', close: '关闭',
+                newJournalTitle: '新日记的标题', journalPlaceholder: '例如：日本之旅…', renameJournal: '重命名日记',
+                deleteJournalTitle: '删除日记', deleteJournalMsg: '确定要烧掉这本日记吗？其中所有的页面和回忆都会丢失。',
+                deletePageTitle: '删除本页', deletePageMsg: '确定要删除这一页吗？照片、录音和文字都会丢失。',
+                deletePhotoTitle: '删除照片', deletePhotoMsg: '确定要移除这张照片吗？',
+                deleteAudioTitle: '删除录音', deleteAudioMsg: '要删除这条语音笔记吗？',
+                micErrorTitle: '麦克风错误', micErrorMsg: '无法访问麦克风。请检查浏览器权限。',
+                saveErrorTitle: '无法保存', saveErrorMsg: '浏览器拒绝保存更改，可能是空间不足。请导出备份，并删除不再需要的照片或录音。',
+                createErrorTitle: '无法创建日记', createErrorMsg: '浏览器拒绝保存，可能是空间不足。',
+                nothingToExportTitle: '没有可导出的内容', nothingToExportMsg: '你的书架上还没有任何日记。',
+                importOkTitle: '导入完成', importOkMsg: '已向书架添加 {n} 本日记。',
+                importErrorTitle: '导入错误', importErrorMsg: '无法读取该文件。请确认它是从本应用导出的 JSON 文件。',
+                importSaveErrorTitle: '保存错误', importSaveErrorMsg: '无法保存全部日记，浏览器可能空间不足。',
+                bookmarksListTitle: '书签页', noBookmarks: '你还没有为任何页面加书签。点击右上角的书签带即可添加。',
+                pageN: '第 {n} 页', untitled: '（无标题）'
+            }
+        };
+
+        let lang = 'ca';
+
+        function t(key, vars) {
+            let s = (I18N[lang] && I18N[lang][key]) || I18N.ca[key] || key;
+            if(vars) Object.keys(vars).forEach(k => { s = s.split('{' + k + '}').join(vars[k]); });
+            return s;
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+
+            document.getElementById('lang-flag').innerHTML = FLAGS[lang];
+
+            // Textos que se generan por JS y no llevan data-i18n
+            const editBtn = document.getElementById('edit-btn');
+            editBtn.innerHTML = (isEditMode ? '✓' : '✎') + `<span class="hidden sm:inline ml-1">${isEditMode ? t('done') : t('edit')}</span>`;
+            setRecordButton(isRecording ? 'grabando' : 'listo');
+            if(currentJournal) renderCurrentPage();
+            else renderLibrary();
+        }
+
+        function setLanguage(code) {
+            if(!I18N[code]) return;
+            lang = code;
+            try { localStorage.setItem(LANG_KEY, code); } catch(e) { /* modo privado: se queda en memoria */ }
+            applyTranslations();
+            closeLangMenu();
+        }
+
+        function renderLangMenu() {
+            const menu = document.getElementById('lang-menu');
+            menu.innerHTML = LANGS.map(code =>
+                `<button class="lang-item ${code === lang ? 'selected' : ''}" onclick="setLanguage('${code}')">${FLAGS[code]}<span>${LANG_NAMES[code]}</span></button>`
+            ).join('');
+        }
+
+        function toggleLangMenu(event) {
+            if(event) event.stopPropagation();
+            const menu = document.getElementById('lang-menu');
+            if(menu.classList.contains('hidden')) {
+                renderLangMenu();
+                menu.classList.remove('hidden');
+                document.getElementById('lang-btn').setAttribute('aria-expanded', 'true');
+                setTimeout(() => document.addEventListener('click', closeLangMenu, { once: true }), 0);
+            } else {
+                closeLangMenu();
+            }
+        }
+
+        function closeLangMenu() {
+            document.getElementById('lang-menu').classList.add('hidden');
+            document.getElementById('lang-btn').setAttribute('aria-expanded', 'false');
+        }
         
         // --- IndexedDB Wrapper robusto ---
         const DB_NAME = 'TravelJournalDB_v2';
@@ -441,6 +823,7 @@
                 document.getElementById('modal-overlay').classList.remove('hidden');
                 const box = document.getElementById('modal-box');
                 document.getElementById('prompt-box').classList.add('hidden');
+                document.getElementById('list-box').classList.add('hidden');
                 box.classList.remove('hidden');
                 setTimeout(() => box.classList.remove('scale-95'), 10);
                 
@@ -459,49 +842,138 @@
                     confirmBtn.onclick = () => this.close();
                 }
             },
-            showPrompt: function(title, onConfirm) {
+            // opts: { value, confirmText, colors: bool, color }
+            // onConfirm recibe (texto, color)
+            showPrompt: function(title, onConfirm, opts) {
+                opts = opts || {};
                 document.getElementById('modal-overlay').classList.remove('hidden');
                 const box = document.getElementById('prompt-box');
                 document.getElementById('modal-box').classList.add('hidden');
+                document.getElementById('list-box').classList.add('hidden');
                 box.classList.remove('hidden');
                 setTimeout(() => box.classList.remove('scale-95'), 10);
-                
+
                 document.getElementById('prompt-title').textContent = title;
+                document.getElementById('prompt-confirm').textContent = opts.confirmText || t('create');
+
                 const input = document.getElementById('prompt-input');
-                input.value = '';
-                setTimeout(() => input.focus(), 100);
-                
-                document.getElementById('prompt-cancel').onclick = () => this.close();
-                document.getElementById('prompt-confirm').onclick = () => { 
+                input.value = opts.value || '';
+                setTimeout(() => { input.focus(); input.select(); }, 100);
+
+                // Paleta de colores de cubierta (solo al renombrar)
+                let chosenColor = opts.color || null;
+                const colorsBox = document.getElementById('prompt-colors');
+                if(opts.colors) {
+                    colorsBox.classList.remove('hidden');
+                    colorsBox.classList.add('flex');
+                    colorsBox.innerHTML = bookColors.map(c =>
+                        `<button type="button" data-color="${c}" class="w-9 h-9 rounded-full border-4 transition ${c === chosenColor ? 'border-amber-500 scale-110' : 'border-transparent'}" style="background-color:${c}"></button>`
+                    ).join('');
+                    colorsBox.querySelectorAll('button').forEach(b => {
+                        b.onclick = () => {
+                            chosenColor = b.dataset.color;
+                            colorsBox.querySelectorAll('button').forEach(x => x.className = x.className.replace(/border-amber-500 scale-110|border-transparent/, 'border-transparent'));
+                            b.className = b.className.replace('border-transparent', 'border-amber-500 scale-110');
+                        };
+                    });
+                } else {
+                    colorsBox.classList.add('hidden');
+                    colorsBox.classList.remove('flex');
+                    colorsBox.innerHTML = '';
+                }
+
+                const confirm = () => {
                     const val = input.value.trim();
-                    if(val) { this.close(); onConfirm(val); }
+                    if(val) { this.close(); onConfirm(val, chosenColor); }
                 };
+                document.getElementById('prompt-cancel').onclick = () => this.close();
+                document.getElementById('prompt-confirm').onclick = confirm;
+                input.onkeydown = (e) => { if(e.key === 'Enter') confirm(); };
+            },
+            // items: [{label, sub, onPick}]
+            showList: function(title, items, emptyMsg) {
+                document.getElementById('modal-overlay').classList.remove('hidden');
+                const box = document.getElementById('list-box');
+                document.getElementById('modal-box').classList.add('hidden');
+                document.getElementById('prompt-box').classList.add('hidden');
+                box.classList.remove('hidden');
+                setTimeout(() => box.classList.remove('scale-95'), 10);
+
+                document.getElementById('list-title').textContent = title;
+                const cont = document.getElementById('list-items');
+
+                if(items.length === 0) {
+                    cont.innerHTML = `<p class="text-gray-500 text-center py-4">${escapeHtml(emptyMsg)}</p>`;
+                } else {
+                    cont.innerHTML = items.map((it, i) =>
+                        `<button data-idx="${i}" class="w-full text-left px-3 py-3 rounded-lg hover:bg-amber-50 transition border-b border-gray-100 last:border-0 flex items-center gap-3">
+                            <span class="text-amber-600 shrink-0">🔖</span>
+                            <span class="min-w-0">
+                                <span class="block font-medium text-gray-800 truncate">${escapeHtml(it.label)}</span>
+                                <span class="block text-xs text-gray-500">${escapeHtml(it.sub)}</span>
+                            </span>
+                        </button>`
+                    ).join('');
+                    cont.querySelectorAll('button').forEach(b => {
+                        b.onclick = () => { this.close(); items[b.dataset.idx].onPick(); };
+                    });
+                }
+                document.getElementById('list-close').onclick = () => this.close();
             },
             close: function() {
                 document.getElementById('modal-box').classList.add('scale-95');
                 document.getElementById('prompt-box').classList.add('scale-95');
+                document.getElementById('list-box').classList.add('scale-95');
                 setTimeout(() => {
                     document.getElementById('modal-overlay').classList.add('hidden');
                 }, 150);
             }
         };
 
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Migración: hasta ahora cada página tenía una sola foto en `photo`.
+        // Ahora son varias en `photos[]`; los diarios antiguos se convierten al vuelo.
+        function normalizePage(p) {
+            if(!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : [];
+            delete p.photo;
+            if(!('locationName' in p)) p.locationName = null;
+            if(!('bookmarked' in p)) p.bookmarked = false;
+            return p;
+        }
+
+        function normalizeJournal(j) {
+            j.pages = Array.isArray(j.pages) ? j.pages.map(normalizePage) : [];
+            if(j.pages.length === 0) j.pages = [createEmptyPage()];
+            return j;
+        }
+
         window.onload = async function() {
             try {
-                journals = await getJournals();
+                const guardado = localStorage.getItem(LANG_KEY);
+                if(guardado && I18N[guardado]) lang = guardado;
+            } catch(e) { /* modo privado */ }
+
+            try {
+                journals = (await getJournals()).map(normalizeJournal);
             } catch (e) {
                 console.error("No se pudo cargar la base de datos", e);
                 journals = [];
             }
-            renderLibrary();
+            applyTranslations();
+            initFlipGestures();
         };
 
         function renderLibrary() {
             const container = document.getElementById('library-shelves');
             container.innerHTML = '';
-            
+
             if(journals.length === 0) {
-                container.innerHTML = '<p class="text-amber-200/50 text-xl font-serif text-center w-full mt-20">Tu estantería está vacía.<br>Crea tu primer diario de viaje abajo.</p>';
+                container.innerHTML = `<p class="text-amber-200/50 text-xl font-serif text-center w-full mt-20">${escapeHtml(t('emptyShelf'))}<br>${escapeHtml(t('emptyShelf2'))}</p>`;
                 return;
             }
 
@@ -509,7 +981,7 @@
                 const book = document.createElement('div');
                 book.className = `book-spine ${isEditMode ? 'wobble' : ''}`;
                 book.style.backgroundColor = journal.color;
-                
+
                 const title = document.createElement('div');
                 title.className = 'spine-title';
                 title.textContent = journal.title;
@@ -524,6 +996,16 @@
                         deleteJournal(journal.id);
                     };
                     book.appendChild(delBtn);
+
+                    const editBtn = document.createElement('div');
+                    editBtn.className = 'absolute -top-3 -left-3 bg-amber-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-sans shadow-lg z-10 cursor-pointer border-2 border-white';
+                    editBtn.innerHTML = '✎';
+                    editBtn.title = t('renameJournal');
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        renameJournal(journal.id);
+                    };
+                    book.appendChild(editBtn);
                 } else {
                     book.onclick = () => openJournal(journal);
                 }
@@ -535,16 +1017,32 @@
         function toggleEditMode() {
             isEditMode = !isEditMode;
             const btn = document.getElementById('edit-btn');
-            btn.innerHTML = isEditMode ? '✓<span class="hidden sm:inline"> Hecho</span>' : '✎<span class="hidden sm:inline"> Editar</span>';
+            btn.innerHTML = (isEditMode ? '✓' : '✎') + `<span class="hidden sm:inline ml-1">${isEditMode ? t('done') : t('edit')}</span>`;
             btn.className = isEditMode
                 ? 'text-red-400 font-bold transition whitespace-nowrap'
                 : 'text-amber-200 hover:text-white transition font-medium whitespace-nowrap';
             renderLibrary();
         }
 
+        function renameJournal(id) {
+            const journal = journals.find(j => j.id === id);
+            if(!journal) return;
+            Modal.showPrompt(t('renameJournal'), async (title, color) => {
+                journal.title = title;
+                if(color) journal.color = color;
+                try {
+                    await saveJournalDB(journal);
+                } catch(err) {
+                    console.error('Fallo al renombrar el diario', err);
+                    Modal.showMsg(t('saveErrorTitle'), t('saveErrorMsg'));
+                }
+                renderLibrary();
+            }, { value: journal.title, color: journal.color, colors: true, confirmText: t('save') });
+        }
+
         function createNewJournal() {
             if(isEditMode) toggleEditMode();
-            Modal.showPrompt('Título del Nuevo Diario', async (title) => {
+            Modal.showPrompt(t('newJournalTitle'), async (title) => {
                 const newJournal = {
                     id: 'journal_' + Date.now(),
                     title: title,
@@ -555,8 +1053,7 @@
                     await saveJournalDB(newJournal);
                 } catch(err) {
                     console.error('Fallo al crear el diario', err);
-                    Modal.showMsg('No se ha podido crear el diario',
-                        'El navegador ha rechazado guardarlo. Puede que no quede espacio.');
+                    Modal.showMsg(t('createErrorTitle'), t('createErrorMsg'));
                     return;
                 }
                 journals.push(newJournal);
@@ -573,7 +1070,7 @@
         }
 
         function deleteJournal(id) {
-            Modal.showMsg('Eliminar Diario', '¿Estás seguro de que quieres quemar este diario? Se perderán todas sus páginas y recuerdos.', true, async () => {
+            Modal.showMsg(t('deleteJournalTitle'), t('deleteJournalMsg'), true, async () => {
                 journals = journals.filter(j => j.id !== id);
                 await deleteJournalDB(id);
                 renderLibrary();
@@ -585,7 +1082,7 @@
         // es la única forma de no perder los diarios al cambiar de móvil.
         function exportData() {
             if(journals.length === 0) {
-                Modal.showMsg('Nada que exportar', 'Todavía no tienes ningún diario en la estantería.');
+                Modal.showMsg(t('nothingToExportTitle'), t('nothingToExportMsg'));
                 return;
             }
             const payload = {
@@ -625,7 +1122,7 @@
                     : [];
 
                 if(valid.length === 0) {
-                    Modal.showMsg('Error al importar', 'No se ha podido leer el archivo. Comprueba que es un JSON exportado desde esta app.');
+                    Modal.showMsg(t('importErrorTitle'), t('importErrorMsg'));
                     return;
                 }
 
@@ -633,20 +1130,20 @@
                     for(const j of valid) {
                         // Los diarios se añaden, nunca sobrescriben: id nuevo si ya existe
                         const collides = !j.id || journals.some(x => x.id === j.id);
-                        journals.push({
+                        journals.push(normalizeJournal({
                             id: collides ? 'journal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) : j.id,
                             title: j.title,
                             color: j.color || bookColors[Math.floor(Math.random() * bookColors.length)],
-                            pages: j.pages.length ? j.pages : [createEmptyPage()]
-                        });
+                            pages: j.pages
+                        }));
                         await saveJournalDB(journals[journals.length - 1]);
                     }
                     renderLibrary();
-                    Modal.showMsg('Importación completada', `Se han añadido ${valid.length} diario(s) a tu estantería.`);
+                    Modal.showMsg(t('importOkTitle'), t('importOkMsg', { n: valid.length }));
                 } catch(err) {
                     console.error(err);
                     renderLibrary();
-                    Modal.showMsg('Error al guardar', 'No se han podido guardar todos los diarios. Puede que no quede espacio en el navegador.');
+                    Modal.showMsg(t('importSaveErrorTitle'), t('importSaveErrorMsg'));
                 }
             };
             reader.readAsText(file);
@@ -710,16 +1207,9 @@
             document.getElementById('page-title').value = currentPage.title || '';
             document.getElementById('page-text').value = currentPage.text || '';
             
-            // Foto
-            if (currentPage.photo) {
-                document.getElementById('page-photo').src = currentPage.photo;
-                document.getElementById('take-photo-container').classList.add('hidden');
-                document.getElementById('polaroid-container').classList.remove('hidden');
-            } else {
-                document.getElementById('take-photo-container').classList.remove('hidden');
-                document.getElementById('polaroid-container').classList.add('hidden');
-            }
-            
+            // Fotos
+            renderPhotosStrip();
+
             // Metadatos (Geoloc, fecha)
             if (currentPage.date) {
                 document.getElementById('meta-date').textContent = currentPage.date;
@@ -791,8 +1281,7 @@
                 console.error('Fallo al guardar el diario', err);
                 if(!saveErrorNotified) {
                     saveErrorNotified = true;
-                    Modal.showMsg('No se ha podido guardar',
-                        'El navegador ha rechazado guardar los cambios. Puede que no quede espacio. Exporta una copia de seguridad y borra fotos o audios que ya no necesites.');
+                    Modal.showMsg(t('saveErrorTitle'), t('saveErrorMsg'));
                 }
                 return;
             }
@@ -802,22 +1291,19 @@
             if(idx !== -1) journals[idx] = currentJournal;
         }
 
-        async function prevPage() {
-            if(currentPageIndex > 0) {
-                if(isRecording) toggleRecording(); // No seguir grabando en otra página
-                await flushSave();
-                currentPageIndex--;
-                renderCurrentPage();
-            }
+        // Cambio de página sin animación: el punto por el que pasan todos los caminos
+        async function goToPage(index) {
+            if(!currentJournal) return;
+            if(index < 0 || index >= currentJournal.pages.length) return;
+            if(isRecording) toggleRecording(); // No seguir grabando en otra página
+            await flushSave();
+            currentPageIndex = index;
+            renderCurrentPage();
         }
-        async function nextPage() {
-            if(currentPageIndex < currentJournal.pages.length - 1) {
-                if(isRecording) toggleRecording();
-                await flushSave();
-                currentPageIndex++;
-                renderCurrentPage();
-            }
-        }
+
+        function prevPage() { animateFlip(-1); }
+        function nextPage() { animateFlip(1); }
+
         async function addNewPage() {
             if(isRecording) toggleRecording();
             await flushSave();
@@ -825,6 +1311,188 @@
             currentPageIndex = currentJournal.pages.length - 1;
             renderCurrentPage();
             saveCurrentState();
+        }
+
+        function deleteCurrentPage() {
+            if(!currentJournal || !currentPage) return;
+            Modal.showMsg(t('deletePageTitle'), t('deletePageMsg'), true, async () => {
+                if(isRecording) toggleRecording();
+                // Lo que hubiera pendiente de guardar es de la página que se va
+                clearTimeout(saveTimeout);
+
+                const idx = currentPageIndex;
+                currentJournal.pages.splice(idx, 1);
+                if(currentJournal.pages.length === 0) currentJournal.pages.push(createEmptyPage());
+                currentPageIndex = Math.min(idx, currentJournal.pages.length - 1);
+
+                renderCurrentPage();
+                await saveCurrentState();
+            });
+        }
+
+        function showBookmarks() {
+            if(!currentJournal) return;
+            const items = [];
+            currentJournal.pages.forEach((p, i) => {
+                if(!p.bookmarked) return;
+                items.push({
+                    label: (p.title || '').trim() || t('untitled'),
+                    sub: t('pageN', { n: i + 1 }) + (p.date ? ' · ' + p.date : ''),
+                    onPick: () => goToPage(i)
+                });
+            });
+            Modal.showList(t('bookmarksListTitle'), items, t('noBookmarks'));
+        }
+
+        // --- Pasar página arrastrando ---
+        // La hoja que gira es una réplica visual estática: el textarea, el audio y los
+        // botones no se pueden rotar en 3D de forma fiable, así que durante el gesto se
+        // muestra una copia sin controles y al terminar vuelve el contenido real.
+        let isFlipping = false;
+        let flipState = null;
+
+        function replicaHtml(page) {
+            if(!page) return '';
+            const fotos = (page.photos || []).slice(0, 3).map((src, i) =>
+                `<div class="polaroid polaroid-thumb" style="transform: rotate(${photoTilt(i)}deg)"><img class="w-full h-auto object-cover rounded-sm" src="${src}" alt=""></div>`
+            ).join('');
+            const meta = page.date
+                ? `<div class="w-full max-w-sm mx-auto mb-6 bg-black bg-opacity-[0.03] rounded-lg p-3 text-center text-sm text-gray-700 font-sans border border-gray-300">
+                       ${escapeHtml(page.date)} · ${escapeHtml(page.time || '')}<br>
+                       <span class="text-blue-700 underline">${escapeHtml(page.locationName || '')}</span>
+                   </div>`
+                : '';
+            const audio = page.audio
+                ? `<div class="w-full max-w-sm mx-auto mb-6 bg-gray-200 rounded-xl p-4 border border-gray-300 text-center text-gray-500 font-sans text-sm">▶ ▬▬▬▬▬▬▬▬▬▬</div>`
+                : '';
+            return `
+                <h2 class="text-3xl md:text-4xl font-serif text-gray-800 mb-8 text-center font-bold">${escapeHtml(page.title || '')}</h2>
+                <div class="flex flex-wrap justify-center items-start gap-6 mb-6">${fotos}</div>
+                ${meta}${audio}
+                <div class="font-serif text-gray-800 text-lg custom-lines whitespace-pre-wrap p-1">${escapeHtml(page.text || '')}</div>
+            `;
+        }
+
+        function flipEls() {
+            return {
+                sheet: document.getElementById('flip-sheet'),
+                under: document.getElementById('flip-under'),
+                sheetContent: document.getElementById('flip-sheet-content'),
+                underContent: document.getElementById('flip-under-content'),
+                shadeFront: document.getElementById('flip-shade-front'),
+                shadeBack: document.getElementById('flip-shade-back')
+            };
+        }
+
+        // dir: 1 hacia adelante, -1 hacia atrás. Devuelve false si no hay a dónde ir.
+        function beginFlip(dir) {
+            if(!currentJournal || isFlipping) return false;
+            const destino = currentPageIndex + dir;
+            if(destino < 0 || destino >= currentJournal.pages.length) return false;
+
+            // El objeto de la página se actualiza en el acto, así que la réplica
+            // sale con lo último escrito aunque el guardado aún esté pendiente.
+            flushSave();
+
+            const els = flipEls();
+            if(dir === 1) {
+                // Se va la actual y debajo espera la siguiente
+                els.sheetContent.innerHTML = replicaHtml(currentJournal.pages[currentPageIndex]);
+                els.underContent.innerHTML = replicaHtml(currentJournal.pages[destino]);
+            } else {
+                // Entra la anterior por la izquierda, sobre la actual
+                els.sheetContent.innerHTML = replicaHtml(currentJournal.pages[destino]);
+                els.underContent.innerHTML = replicaHtml(currentJournal.pages[currentPageIndex]);
+            }
+            els.under.classList.add('active');
+            els.sheet.classList.add('active');
+
+            flipState = { dir, destino, progress: 0 };
+            isFlipping = true;
+            setFlipProgress(0);
+            return true;
+        }
+
+        function setFlipProgress(p) {
+            if(!flipState) return;
+            flipState.progress = p;
+            const els = flipEls();
+            // Adelante: de 0° a -180°. Atrás: llega desde -180° hasta 0°.
+            const angle = flipState.dir === 1 ? -180 * p : -180 * (1 - p);
+            els.sheet.style.transform = `rotateY(${angle}deg)`;
+            // La sombra es máxima con la hoja de canto y se va con ella plana
+            const sombra = Math.sin(Math.abs(angle) * Math.PI / 180);
+            els.shadeFront.style.opacity = sombra * 0.55;
+            els.shadeBack.style.opacity = sombra * 0.35;
+        }
+
+        function endFlip(commit) {
+            if(!flipState) return;
+            const els = flipEls();
+            const st = flipState;
+
+            els.sheet.classList.add('animating');
+            setFlipProgress(commit ? 1 : 0);
+
+            setTimeout(async () => {
+                els.sheet.classList.remove('animating');
+                if(commit) await goToPage(st.destino);
+                els.sheet.classList.remove('active');
+                els.under.classList.remove('active');
+                els.sheet.style.transform = '';
+                flipState = null;
+                isFlipping = false;
+            }, 520);
+        }
+
+        // Paso de página con los botones: mismo pliegue, disparado a mano
+        function animateFlip(dir) {
+            if(!beginFlip(dir)) return;
+            void document.getElementById('flip-sheet').offsetWidth; // reflow: la transición parte del ángulo inicial
+            endFlip(true);
+        }
+
+        function initFlipGestures() {
+            const scroller = document.getElementById('page-scroller');
+            let start = null;
+
+            scroller.addEventListener('pointerdown', (e) => {
+                if(isFlipping || !currentJournal) return;
+                if(e.pointerType === 'mouse' && e.button !== 0) return;
+                // No robarle el gesto a los controles ni a la selección de texto
+                if(e.target.closest('input, textarea, button, label, audio, a, .polaroid, #bookmark-ribbon')) return;
+                start = { x: e.clientX, y: e.clientY, id: e.pointerId, decidido: false };
+            });
+
+            scroller.addEventListener('pointermove', (e) => {
+                if(!start || e.pointerId !== start.id) return;
+                const dx = e.clientX - start.x;
+                const dy = e.clientY - start.y;
+
+                if(!start.decidido) {
+                    // Vertical: es scroll, soltamos el gesto
+                    if(Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { start = null; return; }
+                    // Aún no está claro que sea horizontal: esperamos
+                    if(Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                    if(!beginFlip(dx < 0 ? 1 : -1)) { start = null; return; }
+                    start.decidido = true;
+                    // Puede fallar si el puntero ya se ha soltado: no es motivo para abortar
+                    try { scroller.setPointerCapture(e.pointerId); } catch(err) { /* seguimos sin captura */ }
+                }
+
+                const ancho = scroller.clientWidth || 1;
+                const recorrido = flipState.dir === 1 ? -dx : dx;
+                setFlipProgress(Math.max(0, Math.min(1, recorrido / ancho)));
+            });
+
+            const soltar = (e) => {
+                if(!start || (e && e.pointerId !== start.id)) return;
+                const decidido = start.decidido;
+                start = null;
+                if(decidido && flipState) endFlip(flipState.progress >= 0.35);
+            };
+            scroller.addEventListener('pointerup', soltar);
+            scroller.addEventListener('pointercancel', soltar);
         }
 
         function toggleBookmark() {
@@ -838,55 +1506,86 @@
             saveCurrentState();
         }
 
-        function handlePhotoCapture(event) {
-            const file = event.target.files[0];
-            if(!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    // Redimensionar para no saturar IndexedDB
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    document.getElementById('page-photo').src = dataUrl;
-                    document.getElementById('take-photo-container').classList.add('hidden');
-                    document.getElementById('polaroid-container').classList.remove('hidden');
-                    
-                    currentPage.photo = dataUrl;
-                    
-                    // Al tomar foto, capturamos automáticamente fecha, hora y lugar
-                    captureMetadata();
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        // Cada polaroid se inclina un poco, siempre igual para la misma posición,
+        // para que no bailen al repintar la página.
+        function photoTilt(i) {
+            return [-3, 2, -1.5, 3, -2.5, 1][i % 6];
         }
 
-        function removePhoto() {
-            Modal.showMsg('Borrar Foto', '¿Estás seguro de que quieres quitar esta foto?', true, () => {
-                currentPage.photo = null;
-                document.getElementById('take-photo-container').classList.remove('hidden');
-                document.getElementById('polaroid-container').classList.add('hidden');
-                // Borramos metadatos asociados a la foto (opcional, pero realista)
-                currentPage.date = null;
-                currentPage.time = null;
-                currentPage.lat = null;
-                currentPage.lng = null;
-                currentPage.locationName = null;
-                document.getElementById('metadata-container').classList.add('hidden');
+        function renderPhotosStrip() {
+            const strip = document.getElementById('photos-strip');
+            const fotos = (currentPage && currentPage.photos) || [];
+            strip.innerHTML = fotos.map((src, i) => `
+                <div class="polaroid polaroid-thumb relative transition duration-300 hover:rotate-0" style="transform: rotate(${photoTilt(i)}deg)">
+                    <button data-idx="${i}" class="quitar-foto absolute -top-3 -right-3 bg-gray-800 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg hover:bg-red-600 transition z-10 font-sans border-2 border-white">✕</button>
+                    <img class="w-full h-auto object-cover rounded-sm" src="${src}" alt="">
+                </div>
+            `).join('');
+            strip.querySelectorAll('.quitar-foto').forEach(b => {
+                b.onclick = () => removePhoto(Number(b.dataset.idx));
+            });
+        }
+
+        function handlePhotoCapture(event) {
+            const files = Array.from(event.target.files || []);
+            event.target.value = ''; // Permitir volver a elegir la misma foto
+            if(files.length === 0 || !currentPage) return;
+
+            const targetPage = currentPage;
+            const eraLaPrimera = targetPage.photos.length === 0;
+
+            // Se procesan en serie para que el orden final sea el de selección
+            const procesar = (i) => {
+                if(i >= files.length) {
+                    if(currentPage === targetPage) renderPhotosStrip();
+                    // Con la primera foto de la página capturamos fecha, hora y lugar
+                    if(eraLaPrimera) captureMetadata();
+                    else saveCurrentState();
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Redimensionar para no saturar IndexedDB
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        targetPage.photos.push(canvas.toDataURL('image/jpeg', 0.7));
+                        procesar(i + 1);
+                    };
+                    img.onerror = () => procesar(i + 1);
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => procesar(i + 1);
+                reader.readAsDataURL(files[i]);
+            };
+            procesar(0);
+        }
+
+        function removePhoto(index) {
+            Modal.showMsg(t('deletePhotoTitle'), t('deletePhotoMsg'), true, () => {
+                if(!currentPage) return;
+                currentPage.photos.splice(index, 1);
+                // Los metadatos solo se borran al quitar la última foto de la página
+                if(currentPage.photos.length === 0) {
+                    currentPage.date = null;
+                    currentPage.time = null;
+                    currentPage.lat = null;
+                    currentPage.lng = null;
+                    currentPage.locationName = null;
+                    document.getElementById('metadata-container').classList.add('hidden');
+                }
+                renderPhotosStrip();
                 saveCurrentState();
             });
         }
@@ -901,7 +1600,7 @@
 
             document.getElementById('meta-date').textContent = targetPage.date;
             document.getElementById('meta-time').textContent = targetPage.time;
-            document.getElementById('meta-location').textContent = "Buscando ubicación...";
+            document.getElementById('meta-location').textContent = t('searchingLocation');
             document.getElementById('metadata-container').classList.remove('hidden');
             saveCurrentState();
 
@@ -916,7 +1615,7 @@
                     },
                     (error) => {
                         if(currentPage === targetPage) {
-                            document.getElementById('meta-location').textContent = "Ubicación no disponible";
+                            document.getElementById('meta-location').textContent = t('locationUnavailable');
                         }
                         console.warn("Geolocalización fallida", error);
                     },
@@ -953,7 +1652,7 @@
             const el = document.getElementById('meta-location');
 
             if(!page.lat) {
-                el.textContent = 'Ubicación desconocida';
+                el.textContent = t('unknownLocation');
                 return;
             }
             if(page.locationName) {
@@ -961,7 +1660,7 @@
                 return;
             }
 
-            el.textContent = 'Buscando ubicación...';
+            el.textContent = t('searchingLocation');
             reverseGeocode(page.lat, page.lng).then(name => {
                 if(name) {
                     page.locationName = name;
@@ -990,11 +1689,11 @@
             const btn = document.getElementById('record-btn');
             btn.classList.toggle('recording-pulse', state === 'grabando');
             if(state === 'grabando') {
-                btn.innerHTML = `<span class="w-3 h-3 bg-white rounded-full animate-ping mr-3"></span> <span id="record-text">Detener grabación</span>`;
+                btn.innerHTML = `<span class="w-3 h-3 bg-white rounded-full animate-ping mr-3"></span> <span id="record-text">${escapeHtml(t('stopRecording'))}</span>`;
             } else if(state === 'procesando') {
-                btn.innerHTML = `${MIC_ICON} <span id="record-text">Procesando...</span>`;
+                btn.innerHTML = `${MIC_ICON} <span id="record-text">${escapeHtml(t('processing'))}</span>`;
             } else {
-                btn.innerHTML = `${MIC_ICON} <span id="record-text">Grabar nota de voz</span>`;
+                btn.innerHTML = `${MIC_ICON} <span id="record-text">${escapeHtml(t('recordVoice'))}</span>`;
             }
         }
 
@@ -1063,13 +1762,13 @@
 
                 } catch(err) {
                     console.error(err);
-                    Modal.showMsg('Error de Micrófono', 'No se pudo acceder al micrófono. Comprueba los permisos de tu navegador.');
+                    Modal.showMsg(t('micErrorTitle'), t('micErrorMsg'));
                 }
             }
         }
 
         function removeAudio() {
-            Modal.showMsg('Borrar Audio', '¿Quieres eliminar esta nota de voz?', true, () => {
+            Modal.showMsg(t('deleteAudioTitle'), t('deleteAudioMsg'), true, () => {
                 currentPage.audio = null;
                 document.getElementById('page-audio').src = '';
                 document.getElementById('audio-container').classList.add('hidden');
