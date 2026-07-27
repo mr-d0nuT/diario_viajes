@@ -336,6 +336,169 @@
         /* Tira de polaroids (varias fotos por página) */
         .polaroid-thumb { width: 150px; }
         @media (min-width: 640px) { .polaroid-thumb { width: 175px; } }
+
+        /* Pulsación larga sobre un tomo */
+        .book-spine {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s, filter 0.3s;
+        }
+        .book-spine.press-hold {
+            transform: translateY(-16px) scale(1.07);
+            filter: brightness(1.25);
+            box-shadow: 0 0 0 3px rgba(253, 230, 138, 0.6), 10px 14px 22px rgba(0,0,0,0.7);
+        }
+
+        /* --- Exportación a PDF --- */
+        /* El documento se maqueta en #print-root y solo existe al imprimir. */
+        #print-root { display: none; }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 18mm 16mm 20mm 16mm;
+            }
+
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+                background: #fff !important;
+            }
+
+            #library-view, #reader-view, #modal-overlay { display: none !important; }
+
+            #print-root {
+                display: block !important;
+                font-family: 'Georgia', serif;
+                color: #1a1a1a;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .pdf-cover {
+                min-height: 210mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+            }
+            .pdf-cover-band {
+                width: 62mm;
+                height: 3.5mm;
+                border-radius: 2mm;
+                margin-bottom: 16mm;
+            }
+            .pdf-kicker {
+                font-size: 8.5pt;
+                letter-spacing: 0.38em;
+                text-transform: uppercase;
+                color: #7a7a7a;
+                margin: 0 0 9mm;
+            }
+            .pdf-cover h1 {
+                font-size: 34pt;
+                font-weight: 700;
+                line-height: 1.15;
+                margin: 0;
+                max-width: 130mm;
+            }
+            .pdf-rule {
+                width: 26mm;
+                height: 1px;
+                background: #c9c9c9;
+                margin: 10mm auto;
+            }
+            .pdf-meta {
+                font-size: 10.5pt;
+                color: #5f5f5f;
+                font-style: italic;
+                margin: 0 0 2mm;
+            }
+
+            /* Una entrada por hoja: la portada no lleva salto propio, lo pone cada entrada */
+            .pdf-entry {
+                break-before: page;
+                page-break-before: always;
+            }
+            .pdf-runhead {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 10mm;
+                font-size: 7.5pt;
+                letter-spacing: 0.24em;
+                text-transform: uppercase;
+                color: #8f8f8f;
+                border-bottom: 1px solid #dcdcdc;
+                padding-bottom: 3mm;
+                margin-bottom: 9mm;
+            }
+            .pdf-runhead span:first-child {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .pdf-runhead span:last-child { white-space: nowrap; }
+
+            .pdf-entry h2 {
+                font-size: 21pt;
+                font-weight: 700;
+                line-height: 1.2;
+                margin: 0 0 4mm;
+            }
+            .pdf-dateline {
+                font-size: 9.5pt;
+                color: #6b6b6b;
+                font-style: italic;
+                margin: 0 0 8mm;
+            }
+
+            .pdf-photos {
+                display: grid;
+                gap: 5mm;
+                margin: 0 0 8mm;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .pdf-photos.one { grid-template-columns: 1fr; }
+            .pdf-photos.many { grid-template-columns: 1fr 1fr; }
+            .pdf-photos figure {
+                margin: 0;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .pdf-photos img {
+                display: block;
+                width: 100%;
+                height: auto;
+                border: 1px solid #e2e2e2;
+            }
+
+            .pdf-text {
+                font-size: 11.5pt;
+                line-height: 1.75;
+                white-space: pre-wrap;
+                text-align: justify;
+                hyphens: auto;
+                margin: 0;
+                orphans: 3;
+                widows: 3;
+            }
+            .pdf-note {
+                margin: 8mm 0 0;
+                font-size: 9pt;
+                color: #8f8f8f;
+                font-style: italic;
+            }
+            .pdf-empty {
+                font-size: 10pt;
+                color: #a5a5a5;
+                font-style: italic;
+                margin: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -520,6 +683,9 @@
         </div>
     </div>
 
+    <!-- Documento que se maqueta solo al exportar a PDF -->
+    <div id="print-root"></div>
+
     <script>
         // Colores realistas para las cubiertas de cuero/tela
         const bookColors = ['#4a2e1b', '#2c3e50', '#631f28', '#275239', '#8a4b1e', '#1a1c20'];
@@ -574,7 +740,10 @@
                 importErrorTitle: 'Error en importar', importErrorMsg: 'No s\'ha pogut llegir el fitxer. Comprova que és un JSON exportat des d\'aquesta app.',
                 importSaveErrorTitle: 'Error en desar', importSaveErrorMsg: 'No s\'han pogut desar tots els diaris. Potser no queda espai al navegador.',
                 bookmarksListTitle: 'Pàgines marcades', noBookmarks: 'Encara no has marcat cap pàgina. Toca la cinta de dalt a la dreta per marcar-ne una.',
-                pageN: 'Pàgina {n}', untitled: '(sense títol)'
+                pageN: 'Pàgina {n}', untitled: '(sense títol)',
+                longPressPdf: 'Mantén premut per exportar a PDF',
+                pdfPageOf: 'Pàgina {n} de {total}', pdfPagesCount: '{n} pàgines', pdfPagesCount1: '1 pàgina',
+                pdfAudioNote: 'Aquesta pàgina té una nota de veu, que només es pot escoltar a l\'app.'
             },
             es: {
                 appTitle: 'Mis diarios', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Hecho',
@@ -601,7 +770,10 @@
                 importErrorTitle: 'Error al importar', importErrorMsg: 'No se ha podido leer el archivo. Comprueba que es un JSON exportado desde esta app.',
                 importSaveErrorTitle: 'Error al guardar', importSaveErrorMsg: 'No se han podido guardar todos los diarios. Puede que no quede espacio en el navegador.',
                 bookmarksListTitle: 'Páginas marcadas', noBookmarks: 'Todavía no has marcado ninguna página. Toca la cinta de arriba a la derecha para marcar una.',
-                pageN: 'Página {n}', untitled: '(sin título)'
+                pageN: 'Página {n}', untitled: '(sin título)',
+                longPressPdf: 'Mantén pulsado para exportar a PDF',
+                pdfPageOf: 'Página {n} de {total}', pdfPagesCount: '{n} páginas', pdfPagesCount1: '1 página',
+                pdfAudioNote: 'Esta página tiene una nota de voz, que solo se puede escuchar en la app.'
             },
             en: {
                 appTitle: 'My journals', export: 'Export', import: 'Import', edit: 'Edit', done: 'Done',
@@ -628,7 +800,10 @@
                 importErrorTitle: 'Import error', importErrorMsg: 'The file could not be read. Check that it is a JSON exported from this app.',
                 importSaveErrorTitle: 'Save error', importSaveErrorMsg: 'Not all journals could be saved. The browser may be out of space.',
                 bookmarksListTitle: 'Bookmarked pages', noBookmarks: 'You have not bookmarked any page yet. Tap the ribbon at the top right to bookmark one.',
-                pageN: 'Page {n}', untitled: '(untitled)'
+                pageN: 'Page {n}', untitled: '(untitled)',
+                longPressPdf: 'Press and hold to export as PDF',
+                pdfPageOf: 'Page {n} of {total}', pdfPagesCount: '{n} pages', pdfPagesCount1: '1 page',
+                pdfAudioNote: 'This page has a voice note, which can only be played in the app.'
             },
             fr: {
                 appTitle: 'Mes carnets', export: 'Exporter', import: 'Importer', edit: 'Modifier', done: 'Terminé',
@@ -655,7 +830,10 @@
                 importErrorTitle: 'Erreur d\'importation', importErrorMsg: 'Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit d\'un JSON exporté depuis cette application.',
                 importSaveErrorTitle: 'Erreur d\'enregistrement', importSaveErrorMsg: 'Tous les carnets n\'ont pas pu être enregistrés. Le navigateur manque peut-être d\'espace.',
                 bookmarksListTitle: 'Pages marquées', noBookmarks: 'Vous n\'avez encore marqué aucune page. Touchez le ruban en haut à droite pour en marquer une.',
-                pageN: 'Page {n}', untitled: '(sans titre)'
+                pageN: 'Page {n}', untitled: '(sans titre)',
+                longPressPdf: 'Appuyez longuement pour exporter en PDF',
+                pdfPageOf: 'Page {n} sur {total}', pdfPagesCount: '{n} pages', pdfPagesCount1: '1 page',
+                pdfAudioNote: 'Cette page contient une note vocale, qui ne peut être écoutée que dans l\'application.'
             },
             de: {
                 appTitle: 'Meine Tagebücher', export: 'Exportieren', import: 'Importieren', edit: 'Bearbeiten', done: 'Fertig',
@@ -682,7 +860,10 @@
                 importErrorTitle: 'Importfehler', importErrorMsg: 'Die Datei konnte nicht gelesen werden. Prüfe, ob es eine aus dieser App exportierte JSON-Datei ist.',
                 importSaveErrorTitle: 'Speicherfehler', importSaveErrorMsg: 'Es konnten nicht alle Tagebücher gespeichert werden. Im Browser ist möglicherweise kein Platz mehr.',
                 bookmarksListTitle: 'Markierte Seiten', noBookmarks: 'Du hast noch keine Seite markiert. Tippe oben rechts auf das Lesezeichenband, um eine zu markieren.',
-                pageN: 'Seite {n}', untitled: '(ohne Titel)'
+                pageN: 'Seite {n}', untitled: '(ohne Titel)',
+                longPressPdf: 'Zum PDF-Export gedrückt halten',
+                pdfPageOf: 'Seite {n} von {total}', pdfPagesCount: '{n} Seiten', pdfPagesCount1: '1 Seite',
+                pdfAudioNote: 'Diese Seite enthält eine Sprachnotiz, die sich nur in der App abspielen lässt.'
             },
             zh: {
                 appTitle: '我的日记', export: '导出', import: '导入', edit: '编辑', done: '完成',
@@ -709,7 +890,10 @@
                 importErrorTitle: '导入错误', importErrorMsg: '无法读取该文件。请确认它是从本应用导出的 JSON 文件。',
                 importSaveErrorTitle: '保存错误', importSaveErrorMsg: '无法保存全部日记，浏览器可能空间不足。',
                 bookmarksListTitle: '书签页', noBookmarks: '你还没有为任何页面加书签。点击右上角的书签带即可添加。',
-                pageN: '第 {n} 页', untitled: '（无标题）'
+                pageN: '第 {n} 页', untitled: '（无标题）',
+                longPressPdf: '长按以导出 PDF',
+                pdfPageOf: '第 {n} 页，共 {total} 页', pdfPagesCount: '共 {n} 页', pdfPagesCount1: '共 1 页',
+                pdfAudioNote: '本页含有语音笔记，只能在应用中播放。'
             }
         };
 
@@ -1008,6 +1192,8 @@
                     book.appendChild(editBtn);
                 } else {
                     book.onclick = () => openJournal(journal);
+                    book.title = t('longPressPdf');
+                    attachLongPress(book, () => exportJournalPdf(journal.id));
                 }
 
                 container.appendChild(book);
@@ -1147,6 +1333,134 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        // --- Pulsación larga ---
+        const LONG_PRESS_MS = 550;
+
+        function attachLongPress(el, accion) {
+            let timer = null;
+            let inicio = null;
+            let disparado = false;
+
+            const cancelar = () => {
+                clearTimeout(timer);
+                timer = null;
+                el.classList.remove('press-hold');
+            };
+
+            el.addEventListener('pointerdown', (e) => {
+                if(e.pointerType === 'mouse' && e.button !== 0) return;
+                disparado = false;
+                inicio = { x: e.clientX, y: e.clientY };
+                el.classList.add('press-hold');
+                timer = setTimeout(() => {
+                    disparado = true;
+                    cancelar();
+                    if(navigator.vibrate) navigator.vibrate(18);
+                    accion();
+                }, LONG_PRESS_MS);
+            });
+
+            el.addEventListener('pointermove', (e) => {
+                if(!inicio || !timer) return;
+                // Si el dedo se mueve, ya no es una pulsación: es un arrastre
+                if(Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) > 10) cancelar();
+            });
+
+            el.addEventListener('pointerup', cancelar);
+            el.addEventListener('pointercancel', cancelar);
+            el.addEventListener('pointerleave', cancelar);
+
+            // Tras una pulsación larga llega un click: hay que impedir que abra el diario
+            el.addEventListener('click', (e) => {
+                if(disparado) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    disparado = false;
+                }
+            }, true);
+
+            // En móvil, mantener pulsado abre el menú del navegador
+            el.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        // --- Exportar un diario a PDF ---
+        // Se maqueta un documento aparte y se deja imprimir al navegador: el texto
+        // sale vectorial y seleccionable, y no hace falta ninguna librería.
+        const TITULO_ORIGINAL = document.title;
+
+        function pdfDateRange(journal) {
+            const fechas = journal.pages.map(p => p.date).filter(Boolean);
+            if(fechas.length === 0) return '';
+            const primera = fechas[0];
+            const ultima = fechas[fechas.length - 1];
+            return primera === ultima ? primera : `${primera} — ${ultima}`;
+        }
+
+        function buildPrintDocument(journal) {
+            const total = journal.pages.length;
+
+            const entradas = journal.pages.map((page, i) => {
+                const fotos = page.photos || [];
+                const bloqueFotos = fotos.length
+                    ? `<div class="pdf-photos ${fotos.length === 1 ? 'one' : 'many'}">${
+                        fotos.map(src => `<figure><img src="${src}" alt=""></figure>`).join('')
+                      }</div>`
+                    : '';
+
+                const linea = [page.date, page.time, page.locationName].filter(Boolean).join(' · ');
+                const texto = (page.text || '').trim();
+                const sinNada = !texto && fotos.length === 0;
+
+                return `
+                    <section class="pdf-entry">
+                        <div class="pdf-runhead">
+                            <span>${escapeHtml(journal.title)}</span>
+                            <span>${escapeHtml(t('pdfPageOf', { n: i + 1, total }))}</span>
+                        </div>
+                        ${page.title ? `<h2>${escapeHtml(page.title)}</h2>` : ''}
+                        ${linea ? `<p class="pdf-dateline">${escapeHtml(linea)}</p>` : ''}
+                        ${bloqueFotos}
+                        ${texto ? `<p class="pdf-text">${escapeHtml(texto)}</p>` : ''}
+                        ${sinNada ? `<p class="pdf-empty">—</p>` : ''}
+                        ${page.audio ? `<p class="pdf-note">${escapeHtml(t('pdfAudioNote'))}</p>` : ''}
+                    </section>`;
+            }).join('');
+
+            const rango = pdfDateRange(journal);
+            const recuento = total === 1 ? t('pdfPagesCount1') : t('pdfPagesCount', { n: total });
+
+            document.getElementById('print-root').innerHTML = `
+                <div class="pdf-cover">
+                    <div class="pdf-cover-band" style="background:${journal.color}"></div>
+                    <p class="pdf-kicker">${escapeHtml(t('coverBadge'))}</p>
+                    <h1>${escapeHtml(journal.title)}</h1>
+                    <div class="pdf-rule"></div>
+                    ${rango ? `<p class="pdf-meta">${escapeHtml(rango)}</p>` : ''}
+                    <p class="pdf-meta">${escapeHtml(recuento)}</p>
+                </div>
+                ${entradas}`;
+        }
+
+        async function exportJournalPdf(id) {
+            const journal = journals.find(j => j.id === id);
+            if(!journal) return;
+
+            // Si es el diario abierto, volcar antes lo que esté sin guardar
+            if(currentJournal && currentJournal.id === id) await flushSave();
+
+            buildPrintDocument(journal);
+            // El navegador usa el título del documento como nombre del PDF
+            document.title = journal.title;
+
+            const limpiar = () => {
+                document.getElementById('print-root').innerHTML = '';
+                document.title = TITULO_ORIGINAL;
+            };
+            window.addEventListener('afterprint', limpiar, { once: true });
+
+            window.print();
         }
 
         function openJournal(journal) {
