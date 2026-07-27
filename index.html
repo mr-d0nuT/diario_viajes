@@ -563,6 +563,18 @@
                         <div id="bookmark-ribbon" onclick="toggleBookmark()" class="bookmark" data-i18n-title="bookmarkRibbon"></div>
 
                         <input type="text" id="page-title" class="w-full bg-transparent text-3xl md:text-4xl font-serif text-gray-800 border-none outline-none mb-8 placeholder-gray-400 text-center font-bold" data-i18n-placeholder="pageTitlePlaceholder" oninput="debounceSave()">
+
+                        <!-- Fecha, hora y lugar en una sola línea, justo bajo el título -->
+                        <div id="metadata-container" class="hidden flex flex-wrap items-center justify-center gap-x-2 gap-y-1 -mt-6 mb-8 text-sm text-gray-600 font-sans">
+                            <span id="meta-date">--/--/----</span>
+                            <span class="text-gray-400">·</span>
+                            <span id="meta-time">--:--</span>
+                            <span class="text-gray-400">·</span>
+                            <button type="button" onclick="openLocation()" class="inline-flex items-center text-blue-700 hover:text-blue-900 underline transition">
+                                <svg class="w-4 h-4 mr-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span id="meta-location"></span>
+                            </button>
+                        </div>
                         
                         <!-- Tira de polaroids: se rellena por JS desde currentPage.photos -->
                         <div id="photos-strip" class="flex flex-wrap justify-center items-start gap-6 mb-6"></div>
@@ -580,18 +592,6 @@
                                 <!-- Sin capture: deja elegir fotos ya hechas, y varias a la vez -->
                                 <input type="file" accept="image/*" multiple hidden onchange="handlePhotoCapture(event)">
                             </label>
-                        </div>
-
-                        <div id="metadata-container" class="hidden w-full max-w-sm mx-auto mb-8 bg-black bg-opacity-[0.03] rounded-lg p-3 flex flex-col items-center justify-center space-y-2 text-sm text-gray-700 font-sans border border-gray-300 shadow-inner">
-                            <div class="flex items-center space-x-6 font-medium">
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> <span id="meta-date">--/--/----</span></span>
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span id="meta-time">--:--</span></span>
-                            </div>
-                            <div class="w-3/4 h-px bg-gray-300 my-1"></div>
-                            <div class="flex items-center text-blue-700 cursor-pointer hover:text-blue-900 transition font-medium" onclick="openLocation()">
-                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                <span id="meta-location" class="underline">Buscando ubicación...</span>
-                            </div>
                         </div>
 
                         <div class="w-full max-w-sm mx-auto mb-8">
@@ -743,7 +743,9 @@
                 pageN: 'Pàgina {n}', untitled: '(sense títol)',
                 longPressPdf: 'Mantén premut per exportar a PDF',
                 pdfPageOf: 'Pàgina {n} de {total}', pdfPagesCount: '{n} pàgines', pdfPagesCount1: '1 pàgina',
-                pdfAudioNote: 'Aquesta pàgina té una nota de veu, que només es pot escoltar a l\'app.'
+                pdfAudioNote: 'Aquesta pàgina té una nota de veu, que només es pot escoltar a l\'app.',
+                pdfPrintFallbackTitle: 'S\'obrirà la finestra d\'impressió',
+                pdfPrintFallbackMsg: 'Aquest diari no es pot descarregar directament. S\'obrirà el diàleg d\'impressió: tria «Desa com a PDF».'
             },
             es: {
                 appTitle: 'Mis diarios', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Hecho',
@@ -773,7 +775,9 @@
                 pageN: 'Página {n}', untitled: '(sin título)',
                 longPressPdf: 'Mantén pulsado para exportar a PDF',
                 pdfPageOf: 'Página {n} de {total}', pdfPagesCount: '{n} páginas', pdfPagesCount1: '1 página',
-                pdfAudioNote: 'Esta página tiene una nota de voz, que solo se puede escuchar en la app.'
+                pdfAudioNote: 'Esta página tiene una nota de voz, que solo se puede escuchar en la app.',
+                pdfPrintFallbackTitle: 'Se abrirá la ventana de impresión',
+                pdfPrintFallbackMsg: 'Este diario no se puede descargar directamente. Se abrirá el diálogo de impresión: elige «Guardar como PDF».'
             },
             en: {
                 appTitle: 'My journals', export: 'Export', import: 'Import', edit: 'Edit', done: 'Done',
@@ -803,7 +807,9 @@
                 pageN: 'Page {n}', untitled: '(untitled)',
                 longPressPdf: 'Press and hold to export as PDF',
                 pdfPageOf: 'Page {n} of {total}', pdfPagesCount: '{n} pages', pdfPagesCount1: '1 page',
-                pdfAudioNote: 'This page has a voice note, which can only be played in the app.'
+                pdfAudioNote: 'This page has a voice note, which can only be played in the app.',
+                pdfPrintFallbackTitle: 'The print window will open',
+                pdfPrintFallbackMsg: 'This journal cannot be downloaded directly. The print dialog will open: choose "Save as PDF".'
             },
             fr: {
                 appTitle: 'Mes carnets', export: 'Exporter', import: 'Importer', edit: 'Modifier', done: 'Terminé',
@@ -833,7 +839,9 @@
                 pageN: 'Page {n}', untitled: '(sans titre)',
                 longPressPdf: 'Appuyez longuement pour exporter en PDF',
                 pdfPageOf: 'Page {n} sur {total}', pdfPagesCount: '{n} pages', pdfPagesCount1: '1 page',
-                pdfAudioNote: 'Cette page contient une note vocale, qui ne peut être écoutée que dans l\'application.'
+                pdfAudioNote: 'Cette page contient une note vocale, qui ne peut être écoutée que dans l\'application.',
+                pdfPrintFallbackTitle: 'La fenêtre d\'impression va s\'ouvrir',
+                pdfPrintFallbackMsg: 'Ce carnet ne peut pas être téléchargé directement. La boîte de dialogue d\'impression va s\'ouvrir : choisissez « Enregistrer au format PDF ».'
             },
             de: {
                 appTitle: 'Meine Tagebücher', export: 'Exportieren', import: 'Importieren', edit: 'Bearbeiten', done: 'Fertig',
@@ -863,7 +871,9 @@
                 pageN: 'Seite {n}', untitled: '(ohne Titel)',
                 longPressPdf: 'Zum PDF-Export gedrückt halten',
                 pdfPageOf: 'Seite {n} von {total}', pdfPagesCount: '{n} Seiten', pdfPagesCount1: '1 Seite',
-                pdfAudioNote: 'Diese Seite enthält eine Sprachnotiz, die sich nur in der App abspielen lässt.'
+                pdfAudioNote: 'Diese Seite enthält eine Sprachnotiz, die sich nur in der App abspielen lässt.',
+                pdfPrintFallbackTitle: 'Das Druckfenster wird geöffnet',
+                pdfPrintFallbackMsg: 'Dieses Tagebuch lässt sich nicht direkt herunterladen. Der Druckdialog wird geöffnet: wähle dort „Als PDF sichern".'
             },
             zh: {
                 appTitle: '我的日记', export: '导出', import: '导入', edit: '编辑', done: '完成',
@@ -893,7 +903,9 @@
                 pageN: '第 {n} 页', untitled: '（无标题）',
                 longPressPdf: '长按以导出 PDF',
                 pdfPageOf: '第 {n} 页，共 {total} 页', pdfPagesCount: '共 {n} 页', pdfPagesCount1: '共 1 页',
-                pdfAudioNote: '本页含有语音笔记，只能在应用中播放。'
+                pdfAudioNote: '本页含有语音笔记，只能在应用中播放。',
+                pdfPrintFallbackTitle: '将打开打印窗口',
+                pdfPrintFallbackMsg: '本日记无法直接下载。将打开打印对话框：请选择「存储为 PDF」。'
             }
         };
 
@@ -1443,13 +1455,7 @@
                 ${entradas}`;
         }
 
-        async function exportJournalPdf(id) {
-            const journal = journals.find(j => j.id === id);
-            if(!journal) return;
-
-            // Si es el diario abierto, volcar antes lo que esté sin guardar
-            if(currentJournal && currentJournal.id === id) await flushSave();
-
+        function exportarPorImpresion(journal) {
             buildPrintDocument(journal);
             // El navegador usa el título del documento como nombre del PDF
             document.title = journal.title;
@@ -1461,6 +1467,329 @@
             window.addEventListener('afterprint', limpiar, { once: true });
 
             window.print();
+        }
+
+        // --- Generación directa del PDF con jsPDF ---
+        // jsPDF vive en assets/ y se carga la primera vez que se exporta: son 420 KB
+        // que no tienen por qué pesar en cada arranque de la app.
+        let jsPDFPromise = null;
+
+        function loadJsPDF() {
+            if(window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+            if(!jsPDFPromise) {
+                jsPDFPromise = new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'assets/jspdf.umd.min.js';
+                    s.onload = () => (window.jspdf && window.jspdf.jsPDF)
+                        ? resolve(window.jspdf.jsPDF)
+                        : reject(new Error('jsPDF cargado pero no expone jsPDF'));
+                    s.onerror = () => reject(new Error('No se pudo cargar assets/jspdf.umd.min.js'));
+                    document.head.appendChild(s);
+                }).catch(err => { jsPDFPromise = null; throw err; });
+            }
+            return jsPDFPromise;
+        }
+
+        const PDF_MARGEN_X = 16;
+        const PDF_MARGEN_SUP = 18;
+        const PDF_MARGEN_INF = 20;
+        const PDF_ANCHO = 210 - PDF_MARGEN_X * 2;    // 178 mm de caja de texto
+        const PDF_LIMITE_Y = 297 - PDF_MARGEN_INF;
+        const PT = 0.3527777;                        // 1 punto tipográfico en mm
+
+        const PDF_TINTA = [26, 26, 26];
+        const PDF_GRIS = [107, 107, 107];
+        const PDF_GRIS_CLARO = [143, 143, 143];
+        const PDF_BORDE_FOTO = [226, 226, 226];
+
+        function hexARgb(hex) {
+            const h = String(hex || '#000000').replace('#', '');
+            return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0];
+        }
+
+        // Las fuentes estándar del PDF solo cubren WinAnsi. Si el diario tiene chino,
+        // ruso, griego... jsPDF los escribiría mal, así que para esos se usa el
+        // diálogo de impresión, que sí usa las fuentes del sistema.
+        const WINANSI_EXTRA = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+
+        function esRepresentableEnPdf(texto) {
+            for(const ch of String(texto == null ? '' : texto)) {
+                if(ch.codePointAt(0) <= 0xFF) continue;
+                if(WINANSI_EXTRA.includes(ch)) continue;
+                return false;
+            }
+            return true;
+        }
+
+        function pdfNecesitaImpresion(journal) {
+            // Tanto el contenido como las etiquetas del idioma actual
+            const etiquetas = t('coverBadge') + t('pdfAudioNote') + t('pdfPageOf', { n: 1, total: 1 }) + t('pdfPagesCount', { n: 2 }) + t('pdfPagesCount1');
+            if(!esRepresentableEnPdf(etiquetas)) return true;
+            if(!esRepresentableEnPdf(journal.title)) return true;
+            return !journal.pages.every(p =>
+                esRepresentableEnPdf(p.title) && esRepresentableEnPdf(p.text) &&
+                esRepresentableEnPdf(p.locationName) && esRepresentableEnPdf(p.date) && esRepresentableEnPdf(p.time));
+        }
+
+        function pdfFormatoImagen(src) {
+            return String(src).startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        }
+
+        // Encabezado corrido: se repite en cada hoja, también en las de continuación
+        function pdfCabecera(doc, journal, n, total) {
+            doc.setFont('times', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(...PDF_GRIS_CLARO);
+            doc.setCharSpace(0.5);
+
+            const etiqueta = t('pdfPageOf', { n, total }).toUpperCase();
+            const anchoEtiqueta = doc.getTextWidth(etiqueta);
+            doc.text(etiqueta, PDF_MARGEN_X + PDF_ANCHO, PDF_MARGEN_SUP, { align: 'right' });
+
+            let titulo = String(journal.title).toUpperCase();
+            while(titulo.length > 4 && doc.getTextWidth(titulo) > PDF_ANCHO - anchoEtiqueta - 10) {
+                titulo = titulo.slice(0, -2) + '…';
+            }
+            doc.text(titulo, PDF_MARGEN_X, PDF_MARGEN_SUP);
+            doc.setCharSpace(0);
+
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.2);
+            doc.line(PDF_MARGEN_X, PDF_MARGEN_SUP + 3, PDF_MARGEN_X + PDF_ANCHO, PDF_MARGEN_SUP + 3);
+
+            return PDF_MARGEN_SUP + 12;
+        }
+
+        // jsPDF justifica también la última línea de cada párrafo, que queda fatal,
+        // así que el reparto de espacios se hace a mano palabra a palabra.
+        function pdfTexto(doc, texto, y, journal, n, total) {
+            const tam = 11.5;
+            const alturaLinea = tam * 1.75 * PT;
+
+            const estiloCuerpo = () => {
+                doc.setFont('times', 'normal');
+                doc.setFontSize(tam);
+                doc.setTextColor(...PDF_TINTA);
+            };
+            estiloCuerpo();
+            const anchoEspacio = doc.getTextWidth(' ');
+
+            for(const parrafo of String(texto).split('\n')) {
+                if(parrafo.trim() === '') { y += alturaLinea * 0.6; continue; }
+
+                const lineas = doc.splitTextToSize(parrafo, PDF_ANCHO);
+                lineas.forEach((linea, i) => {
+                    if(y + alturaLinea > PDF_LIMITE_Y) {
+                        doc.addPage();
+                        y = pdfCabecera(doc, journal, n, total);
+                        estiloCuerpo();
+                    }
+                    const palabras = linea.split(' ').filter(p => p.length);
+                    const anchoPalabras = palabras.reduce((s, p) => s + doc.getTextWidth(p), 0);
+                    const hueco = palabras.length > 1 ? (PDF_ANCHO - anchoPalabras) / (palabras.length - 1) : 0;
+                    const ultima = i === lineas.length - 1;
+
+                    if(ultima || palabras.length < 2 || hueco > anchoEspacio * 3.5) {
+                        doc.text(linea, PDF_MARGEN_X, y);
+                    } else {
+                        let x = PDF_MARGEN_X;
+                        for(const p of palabras) {
+                            doc.text(p, x, y);
+                            x += doc.getTextWidth(p) + hueco;
+                        }
+                    }
+                    y += alturaLinea;
+                });
+                y += alturaLinea * 0.55;
+            }
+            return y;
+        }
+
+        function pdfFotos(doc, fotos, y, journal, n, total) {
+            const props = fotos.map(src => {
+                try {
+                    const p = doc.getImageProperties(src);
+                    return { src, ratio: p.height / p.width };
+                } catch(e) {
+                    return { src, ratio: 0.75 };
+                }
+            });
+
+            const marco = (x, yy, w, h) => {
+                doc.setDrawColor(...PDF_BORDE_FOTO);
+                doc.setLineWidth(0.2);
+                doc.rect(x, yy, w, h);
+            };
+
+            if(props.length === 1) {
+                const f = props[0];
+                let w = PDF_ANCHO;
+                let h = w * f.ratio;
+                const maxH = Math.min(130, PDF_LIMITE_Y - y);
+                if(h > maxH) { h = maxH; w = h / f.ratio; }
+                const x = PDF_MARGEN_X + (PDF_ANCHO - w) / 2;
+                doc.addImage(f.src, pdfFormatoImagen(f.src), x, y, w, h);
+                marco(x, y, w, h);
+                return y + h + 8;
+            }
+
+            const colW = (PDF_ANCHO - 5) / 2;
+            for(let i = 0; i < props.length; i += 2) {
+                const fila = props.slice(i, i + 2);
+                const hFila = Math.max(...fila.map(f => colW * f.ratio));
+                if(y + hFila > PDF_LIMITE_Y) {
+                    doc.addPage();
+                    y = pdfCabecera(doc, journal, n, total);
+                }
+                fila.forEach((f, k) => {
+                    const h = colW * f.ratio;
+                    const x = PDF_MARGEN_X + k * (colW + 5);
+                    doc.addImage(f.src, pdfFormatoImagen(f.src), x, y, colW, h);
+                    marco(x, y, colW, h);
+                });
+                y += hFila + 5;
+            }
+            return y + 3;
+        }
+
+        function pdfPortada(doc, journal) {
+            const total = journal.pages.length;
+            const rango = pdfDateRange(journal);
+            const recuento = total === 1 ? t('pdfPagesCount1') : t('pdfPagesCount', { n: total });
+            const centro = 105;
+
+            doc.setFont('times', 'bold');
+            doc.setFontSize(34);
+            const lineasTitulo = doc.splitTextToSize(String(journal.title), 130);
+            const altoTitulo = lineasTitulo.length * 34 * 1.15 * PT;
+
+            const altoBloque = 3.5 + 16 + 9 + altoTitulo + 20 + (rango ? 5.5 : 0) + 5;
+            let y = (297 - altoBloque) / 2;
+
+            doc.setFillColor(...hexARgb(journal.color));
+            doc.roundedRect(centro - 31, y, 62, 3.5, 1.75, 1.75, 'F');
+            y += 3.5 + 16;
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(122, 122, 122);
+            doc.setCharSpace(1.4);
+            doc.text(t('coverBadge').toUpperCase(), centro, y, { align: 'center' });
+            doc.setCharSpace(0);
+            y += 9;
+
+            doc.setFont('times', 'bold');
+            doc.setFontSize(34);
+            doc.setTextColor(...PDF_TINTA);
+            lineasTitulo.forEach(l => {
+                y += 34 * 1.15 * PT;
+                doc.text(l, centro, y, { align: 'center' });
+            });
+
+            y += 10;
+            doc.setDrawColor(201, 201, 201);
+            doc.setLineWidth(0.2);
+            doc.line(centro - 13, y, centro + 13, y);
+            y += 10;
+
+            doc.setFont('times', 'italic');
+            doc.setFontSize(10.5);
+            doc.setTextColor(95, 95, 95);
+            if(rango) { doc.text(rango, centro, y, { align: 'center' }); y += 5.5; }
+            doc.text(recuento, centro, y, { align: 'center' });
+        }
+
+        function nombreArchivoPdf(titulo) {
+            const limpio = String(titulo).replace(/[\\/:*?"<>|]/g, '-').trim();
+            return (limpio || 'diari') + '.pdf';
+        }
+
+        async function generarPdfConLibreria(journal) {
+            const jsPDF = await loadJsPDF();
+            const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+            const total = journal.pages.length;
+
+            pdfPortada(doc, journal);
+
+            journal.pages.forEach((page, i) => {
+                doc.addPage();
+                let y = pdfCabecera(doc, journal, i + 1, total);
+
+                if(page.title) {
+                    doc.setFont('times', 'bold');
+                    doc.setFontSize(21);
+                    doc.setTextColor(...PDF_TINTA);
+                    doc.splitTextToSize(String(page.title), PDF_ANCHO).forEach(l => {
+                        doc.text(l, PDF_MARGEN_X, y);
+                        y += 21 * 1.2 * PT;
+                    });
+                    y += 2;
+                }
+
+                const linea = [page.date, page.time, page.locationName].filter(Boolean).join(' · ');
+                if(linea) {
+                    doc.setFont('times', 'italic');
+                    doc.setFontSize(9.5);
+                    doc.setTextColor(...PDF_GRIS);
+                    doc.text(linea, PDF_MARGEN_X, y);
+                    y += 8;
+                }
+
+                const fotos = page.photos || [];
+                if(fotos.length) y = pdfFotos(doc, fotos, y, journal, i + 1, total);
+
+                const texto = (page.text || '').trim();
+                if(texto) {
+                    y = pdfTexto(doc, texto, y, journal, i + 1, total);
+                } else if(fotos.length === 0) {
+                    doc.setFont('times', 'italic');
+                    doc.setFontSize(10);
+                    doc.setTextColor(165, 165, 165);
+                    doc.text('—', PDF_MARGEN_X, y);
+                    y += 6;
+                }
+
+                if(page.audio) {
+                    if(y + 8 > PDF_LIMITE_Y) {
+                        doc.addPage();
+                        y = pdfCabecera(doc, journal, i + 1, total);
+                    }
+                    doc.setFont('times', 'italic');
+                    doc.setFontSize(9);
+                    doc.setTextColor(...PDF_GRIS_CLARO);
+                    doc.text(t('pdfAudioNote'), PDF_MARGEN_X, y + 4);
+                }
+            });
+
+            doc.save(nombreArchivoPdf(journal.title));
+        }
+
+        let exportandoPdf = false;
+
+        async function exportJournalPdf(id) {
+            const journal = journals.find(j => j.id === id);
+            if(!journal || exportandoPdf) return;
+
+            // Si es el diario abierto, volcar antes lo que esté sin guardar
+            if(currentJournal && currentJournal.id === id) await flushSave();
+
+            // Idiomas o textos fuera de WinAnsi: la descarga directa no puede con ellos
+            if(pdfNecesitaImpresion(journal)) {
+                Modal.showMsg(t('pdfPrintFallbackTitle'), t('pdfPrintFallbackMsg'), true, () => exportarPorImpresion(journal));
+                return;
+            }
+
+            exportandoPdf = true;
+            try {
+                await generarPdfConLibreria(journal);
+            } catch(err) {
+                console.error('Fallo al generar el PDF con jsPDF', err);
+                // Sin la librería (por ejemplo, sin conexión la primera vez) queda el
+                // diálogo de impresión, que no depende de nada.
+                Modal.showMsg(t('pdfPrintFallbackTitle'), t('pdfPrintFallbackMsg'), true, () => exportarPorImpresion(journal));
+            } finally {
+                exportandoPdf = false;
+            }
         }
 
         function openJournal(journal) {
@@ -1770,11 +2099,19 @@
             const scroller = document.getElementById('page-scroller');
             let start = null;
 
+            // Los controles nunca ceden el gesto.
+            const CONTROLES = 'button, label, audio, a, .polaroid, #bookmark-ribbon';
+            // Los campos de texto solo lo retienen con el ratón: ahí arrastrar en
+            // horizontal es seleccionar. Con el dedo no hay conflicto (seleccionar
+            // exige mantener pulsado antes) y sí hacía falta soltarlos: el textarea
+            // ocupa media hoja, así que excluyéndolo casi no quedaba dónde arrastrar.
+            const CAMPOS = 'input, textarea';
+
             scroller.addEventListener('pointerdown', (e) => {
                 if(isFlipping || !currentJournal) return;
                 if(e.pointerType === 'mouse' && e.button !== 0) return;
-                // No robarle el gesto a los controles ni a la selección de texto
-                if(e.target.closest('input, textarea, button, label, audio, a, .polaroid, #bookmark-ribbon')) return;
+                if(e.target.closest(CONTROLES)) return;
+                if(e.pointerType === 'mouse' && e.target.closest(CAMPOS)) return;
                 start = { x: e.clientX, y: e.clientY, id: e.pointerId, decidido: false };
             });
 
@@ -1790,10 +2127,13 @@
                     if(Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
                     if(!beginFlip(dx < 0 ? 1 : -1)) { start = null; return; }
                     start.decidido = true;
+                    // Ya es nuestro: que el arrastre no mueva además el cursor del texto
+                    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
                     // Puede fallar si el puntero ya se ha soltado: no es motivo para abortar
                     try { scroller.setPointerCapture(e.pointerId); } catch(err) { /* seguimos sin captura */ }
                 }
 
+                if(e.cancelable) e.preventDefault();
                 const ancho = scroller.clientWidth || 1;
                 const recorrido = flipState.dir === 1 ? -dx : dx;
                 setFlipProgress(Math.max(0, Math.min(1, recorrido / ancho)));
