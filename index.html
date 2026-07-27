@@ -551,8 +551,15 @@
                     color: bookColors[Math.floor(Math.random() * bookColors.length)],
                     pages: [createEmptyPage()]
                 };
+                try {
+                    await saveJournalDB(newJournal);
+                } catch(err) {
+                    console.error('Fallo al crear el diario', err);
+                    Modal.showMsg('No se ha podido crear el diario',
+                        'El navegador ha rechazado guardarlo. Puede que no quede espacio.');
+                    return;
+                }
                 journals.push(newJournal);
-                await saveJournalDB(newJournal);
                 renderLibrary();
                 openJournal(newJournal); // Abrir directamente
             });
@@ -561,7 +568,7 @@
         function createEmptyPage() {
             return {
                 title: '', photo: null, date: null, time: null, lat: null, lng: null,
-                audio: null, text: '', bookmarked: false
+                locationName: null, audio: null, text: '', bookmarked: false
             };
         }
 
@@ -717,13 +724,7 @@
             if (currentPage.date) {
                 document.getElementById('meta-date').textContent = currentPage.date;
                 document.getElementById('meta-time').textContent = currentPage.time;
-                if (currentPage.lat) {
-                    reverseGeocode(currentPage.lat, currentPage.lng).then(locName => {
-                         document.getElementById('meta-location').textContent = locName;
-                    });
-                } else {
-                    document.getElementById('meta-location').textContent = "Ubicación desconocida";
-                }
+                showLocation(currentPage);
                 document.getElementById('metadata-container').classList.remove('hidden');
             } else {
                 document.getElementById('metadata-container').classList.add('hidden');
@@ -739,6 +740,8 @@
                 audioEl.src = '';
                 document.getElementById('audio-container').classList.add('hidden');
                 document.getElementById('record-btn').classList.remove('hidden');
+                // Sin esto el botón podría quedarse en "Procesando..." de la página anterior
+                if(!isRecording) setRecordButton('listo');
             }
             
             // Punto de libro
@@ -769,15 +772,31 @@
             return saveCurrentState();
         }
 
+        // Un guardado que falla (cupo de IndexedDB lleno por fotos y audios) no puede
+        // pasar desapercibido: el usuario seguiría escribiendo creyendo que se guarda.
+        let saveErrorNotified = false;
+
         async function saveCurrentState() {
             if(!currentJournal || !currentPage) return;
-            
+
             currentPage.title = document.getElementById('page-title').value;
             currentPage.text = document.getElementById('page-text').value;
-            
+
             currentJournal.pages[currentPageIndex] = currentPage;
-            await saveJournalDB(currentJournal);
-            
+
+            try {
+                await saveJournalDB(currentJournal);
+                saveErrorNotified = false;
+            } catch(err) {
+                console.error('Fallo al guardar el diario', err);
+                if(!saveErrorNotified) {
+                    saveErrorNotified = true;
+                    Modal.showMsg('No se ha podido guardar',
+                        'El navegador ha rechazado guardar los cambios. Puede que no quede espacio. Exporta una copia de seguridad y borra fotos o audios que ya no necesites.');
+                }
+                return;
+            }
+
             // Actualizar array en memoria por si acaso
             const idx = journals.findIndex(j => j.id === currentJournal.id);
             if(idx !== -1) journals[idx] = currentJournal;
@@ -785,6 +804,7 @@
 
         async function prevPage() {
             if(currentPageIndex > 0) {
+                if(isRecording) toggleRecording(); // No seguir grabando en otra página
                 await flushSave();
                 currentPageIndex--;
                 renderCurrentPage();
@@ -792,12 +812,14 @@
         }
         async function nextPage() {
             if(currentPageIndex < currentJournal.pages.length - 1) {
+                if(isRecording) toggleRecording();
                 await flushSave();
                 currentPageIndex++;
                 renderCurrentPage();
             }
         }
         async function addNewPage() {
+            if(isRecording) toggleRecording();
             await flushSave();
             currentJournal.pages.push(createEmptyPage());
             currentPageIndex = currentJournal.pages.length - 1;
@@ -863,34 +885,39 @@
                 currentPage.time = null;
                 currentPage.lat = null;
                 currentPage.lng = null;
+                currentPage.locationName = null;
                 document.getElementById('metadata-container').classList.add('hidden');
                 saveCurrentState();
             });
         }
 
         function captureMetadata() {
+            // El GPS tarda: al volver puede que ya estemos en otra página, así que
+            // los datos se escriben en la página donde se tomó la foto, no en la actual.
+            const targetPage = currentPage;
             const now = new Date();
-            currentPage.date = now.toLocaleDateString();
-            currentPage.time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            document.getElementById('meta-date').textContent = currentPage.date;
-            document.getElementById('meta-time').textContent = currentPage.time;
+            targetPage.date = now.toLocaleDateString();
+            targetPage.time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            document.getElementById('meta-date').textContent = targetPage.date;
+            document.getElementById('meta-time').textContent = targetPage.time;
             document.getElementById('meta-location').textContent = "Buscando ubicación...";
             document.getElementById('metadata-container').classList.remove('hidden');
             saveCurrentState();
-            
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        currentPage.lat = position.coords.latitude;
-                        currentPage.lng = position.coords.longitude;
-                        reverseGeocode(currentPage.lat, currentPage.lng).then(locName => {
-                             document.getElementById('meta-location').textContent = locName;
-                        });
+                        targetPage.lat = position.coords.latitude;
+                        targetPage.lng = position.coords.longitude;
+                        targetPage.locationName = null;
                         saveCurrentState();
+                        if(currentPage === targetPage) showLocation(targetPage);
                     },
                     (error) => {
-                        document.getElementById('meta-location').textContent = "Ubicación no disponible";
+                        if(currentPage === targetPage) {
+                            document.getElementById('meta-location').textContent = "Ubicación no disponible";
+                        }
                         console.warn("Geolocalización fallida", error);
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
@@ -898,16 +925,52 @@
             }
         }
 
+        // Devuelve el nombre del sitio, o null si no se ha podido averiguar.
+        // Null en vez de las coordenadas para no cachear un fallo de red como si
+        // fuese el nombre definitivo del lugar: así se reintenta más adelante.
         async function reverseGeocode(lat, lng) {
             try {
                 // API Gratuita de OpenStreetMap para obtener el nombre de la ciudad
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`);
                 if(!res.ok) throw new Error("API Error");
                 const data = await res.json();
-                return data.address.city || data.address.town || data.address.village || data.address.county || `Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`;
+                const a = data.address || {};
+                return a.city || a.town || a.village || a.county || null;
             } catch(e) {
-                return `Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`;
+                return null;
             }
+        }
+
+        function coordsLabel(lat, lng) {
+            return `Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`;
+        }
+
+        // Pinta la ubicación de una página concreta. El nombre se guarda en la propia
+        // página: sin caché se pedía a Nominatim en cada render (su límite es 1 petición
+        // por segundo) y, al pasar páginas rápido, la respuesta de una página anterior
+        // acababa pintada sobre la que se estaba viendo.
+        function showLocation(page) {
+            const el = document.getElementById('meta-location');
+
+            if(!page.lat) {
+                el.textContent = 'Ubicación desconocida';
+                return;
+            }
+            if(page.locationName) {
+                el.textContent = page.locationName;
+                return;
+            }
+
+            el.textContent = 'Buscando ubicación...';
+            reverseGeocode(page.lat, page.lng).then(name => {
+                if(name) {
+                    page.locationName = name;
+                    saveCurrentState();
+                }
+                if(currentPage === page) {
+                    el.textContent = name || coordsLabel(page.lat, page.lng);
+                }
+            });
         }
 
         function openLocation() {
@@ -921,10 +984,23 @@
         let isRecording = false;
         let recordingStream;
 
+        const MIC_ICON = `<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2z" clip-rule="evenodd"></path></svg>`;
+
+        function setRecordButton(state) {
+            const btn = document.getElementById('record-btn');
+            btn.classList.toggle('recording-pulse', state === 'grabando');
+            if(state === 'grabando') {
+                btn.innerHTML = `<span class="w-3 h-3 bg-white rounded-full animate-ping mr-3"></span> <span id="record-text">Detener grabación</span>`;
+            } else if(state === 'procesando') {
+                btn.innerHTML = `${MIC_ICON} <span id="record-text">Procesando...</span>`;
+            } else {
+                btn.innerHTML = `${MIC_ICON} <span id="record-text">Grabar nota de voz</span>`;
+            }
+        }
+
         async function toggleRecording() {
             const btn = document.getElementById('record-btn');
-            const text = document.getElementById('record-text');
-            
+
             if(isRecording) {
                 // Parar grabación
                 mediaRecorder.stop();
@@ -932,47 +1008,59 @@
                     recordingStream.getTracks().forEach(track => track.stop());
                 }
                 isRecording = false;
-                
-                btn.classList.remove('recording-pulse');
-                btn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2z" clip-rule="evenodd"></path></svg> <span>Procesando...</span>`;
-                
+                setRecordButton('procesando');
+
             } else {
                 // Iniciar grabación
                 try {
                     recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(recordingStream);
+                    const rec = new MediaRecorder(recordingStream);
+                    mediaRecorder = rec;
                     audioChunks = [];
-                    
-                    mediaRecorder.ondataavailable = e => {
+
+                    // Página y diario a los que pertenece esta grabación. El volcado a
+                    // data URL es asíncrono: para cuando termina, el usuario puede haber
+                    // pasado de página o cerrado el diario, y el audio debe guardarse
+                    // donde se grabó, no donde se esté en ese momento.
+                    const targetPage = currentPage;
+                    const targetJournal = currentJournal;
+
+                    rec.ondataavailable = e => {
                         if(e.data.size > 0) audioChunks.push(e.data);
                     };
-                    
-                    mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                    rec.onstop = () => {
+                        // Safari/iOS graba en audio/mp4, no en webm. Con el tipo fijo a
+                        // "audio/webm" el data URL quedaba mal etiquetado y el iPhone no
+                        // podía reproducir la nota de voz.
+                        const audioBlob = new Blob(audioChunks, { type: rec.mimeType || 'audio/webm' });
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             const dataUrl = e.target.result;
-                            currentPage.audio = dataUrl;
-                            
-                            const audioEl = document.getElementById('page-audio');
-                            audioEl.src = dataUrl;
-                            document.getElementById('audio-container').classList.remove('hidden');
-                            btn.classList.add('hidden'); // Ocultar botón
-                            
-                            // Resetear botón para el futuro
-                            btn.innerHTML = `<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2z" clip-rule="evenodd"></path></svg> <span>Grabar nota de voz</span>`;
-                            
-                            saveCurrentState();
+                            if(!targetPage) return;
+                            targetPage.audio = dataUrl;
+
+                            setRecordButton('listo');
+                            if(currentPage === targetPage) {
+                                document.getElementById('page-audio').src = dataUrl;
+                                document.getElementById('audio-container').classList.remove('hidden');
+                                btn.classList.add('hidden'); // Ocultar botón
+                            }
+
+                            if(currentJournal === targetJournal) {
+                                saveCurrentState();
+                            } else if(targetJournal) {
+                                // El diario ya está cerrado: guardarlo directamente
+                                saveJournalDB(targetJournal).catch(err => console.error('Fallo al guardar el audio', err));
+                            }
                         };
                         reader.readAsDataURL(audioBlob);
                     };
-                    
-                    mediaRecorder.start();
+
+                    rec.start();
                     isRecording = true;
-                    
-                    btn.classList.add('recording-pulse');
-                    btn.innerHTML = `<span class="w-3 h-3 bg-white rounded-full animate-ping mr-3"></span> <span>Detener grabación</span>`;
-                    
+                    setRecordButton('grabando');
+
                 } catch(err) {
                     console.error(err);
                     Modal.showMsg('Error de Micrófono', 'No se pudo acceder al micrófono. Comprueba los permisos de tu navegador.');
