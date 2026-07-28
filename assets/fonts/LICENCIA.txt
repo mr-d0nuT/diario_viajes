@@ -1,0 +1,4 @@
+Caveat y Cormorant Garamond, ambas bajo SIL Open Font License 1.1.
+Caveat: https://fonts.google.com/specimen/Caveat
+Cormorant Garamond: https://fonts.google.com/specimen/Cormorant+Garamond
+Descargadas de fonts.gstatic.com (subsets latin y latin-ext, ficheros variables).

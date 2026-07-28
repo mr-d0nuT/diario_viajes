@@ -5,11 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Diario de Viaje Hiperrealista</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Así font-serif y font-hand de Tailwind ya apuntan a las fuentes del diario
+        tailwind.config = {
+            theme: { extend: { fontFamily: {
+                serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+                hand: ['Caveat', 'Segoe Script', 'cursive']
+            } } }
+        };
+    </script>
     <style>
+        /* Fuentes vendorizadas en assets/fonts (SIL OFL 1.1): sin ellas la app
+           dependería de la red para tener su propia letra. */
+        @font-face {
+            font-family: 'Caveat';
+            src: url('assets/fonts/caveat-latin.woff2') format('woff2');
+            font-weight: 400 700; font-display: swap;
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        @font-face {
+            font-family: 'Caveat';
+            src: url('assets/fonts/caveat-latin-ext.woff2') format('woff2');
+            font-weight: 400 700; font-display: swap;
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+        }
+        @font-face {
+            font-family: 'Cormorant Garamond';
+            src: url('assets/fonts/cormorant-latin.woff2') format('woff2');
+            font-weight: 400 700; font-display: swap;
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        @font-face {
+            font-family: 'Cormorant Garamond';
+            src: url('assets/fonts/cormorant-latin-ext.woff2') format('woff2');
+            font-weight: 400 700; font-display: swap;
+            unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+        }
+
         :root {
-            --desk-bg: #2a1f18;
-            --paper-color: #fdf6e3;
-            --paper-lines: #e0d8c8;
+            --font-hand: 'Caveat', 'Segoe Script', cursive;
+            --font-serif: 'Cormorant Garamond', 'Georgia', serif;
+
+            --desk-bg: #241a13;
+            --paper-color: #f6efdb;
+            --paper-lines: #dbcfb2;
+            --ink: #2b3040;
+            --ink-soft: #5d6274;
+            --gold: #f0dfb4;
+
+            /* Grano reutilizable: ruido en escala de grises, sin imágenes externas */
+            --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23g)' opacity='0.55'/></svg>");
         }
 
         body, html {
@@ -19,7 +64,7 @@
             height: 100%;
             background-color: var(--desk-bg);
             overflow: hidden;
-            font-family: 'Georgia', serif;
+            font-family: var(--font-serif);
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -27,37 +72,84 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* Fondo de madera: vetas finas, vetas anchas, viñeteado y color base */
         .bg-wood {
-            background-color: #3e2723;
-            background-image: 
-                linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 10%, transparent 90%, rgba(0,0,0,0.4) 100%),
-                repeating-linear-gradient(to bottom, transparent, transparent 150px, rgba(0,0,0,0.6) 150px, rgba(0,0,0,0.6) 170px);
+            background-color: #3a2519;
+            background-image:
+                repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 9px),
+                repeating-linear-gradient(90deg, rgba(255,235,205,0.028) 0 1px, transparent 1px 27px),
+                linear-gradient(180deg, rgba(0,0,0,0.5), transparent 16%, transparent 84%, rgba(0,0,0,0.55)),
+                radial-gradient(130% 55% at 50% -5%, rgba(255,206,150,0.12), transparent 65%),
+                linear-gradient(90deg, #2b1a11, #4a3020 32%, #3d2718 68%, #281810);
             background-attachment: local;
         }
 
+        /* Las baldas se dibujan al fondo de cada fila: el periodo del degradado
+           coincide con la altura del hueco, así siempre quedan bajo los libros. */
         .shelf-container {
             display: flex;
             flex-wrap: wrap;
-            padding: 40px 20px;
-            gap: 20px;
             justify-content: center;
+            column-gap: 22px;
+            row-gap: 0;
+            padding: 30px 18px 70px;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent 0, transparent 252px,
+                rgba(0,0,0,0.6) 252px, rgba(0,0,0,0.6) 254px,
+                #7a5231 254px, #573822 259px, #34200f 266px,
+                rgba(0,0,0,0.75) 266px, rgba(0,0,0,0.75) 268px,
+                transparent 268px);
+            background-origin: content-box;
+            background-clip: content-box;
         }
 
+        .book-slot {
+            height: 268px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 16px;
+        }
+
+        /* El ancho y el alto los pone JS, distintos por diario, para que la
+           estantería no parezca una fila de clones. */
         .book-spine {
-            width: 70px;
-            height: 220px;
-            border-radius: 6px 10px 10px 6px;
-            box-shadow: 
-                inset 5px 0 15px rgba(0,0,0,0.5), 
-                inset -3px 0 10px rgba(255,255,255,0.2), 
-                8px 10px 15px rgba(0,0,0,0.6);
+            border-radius: 3px 9px 9px 3px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             position: relative;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background-blend-mode: multiply;
+            box-shadow:
+                inset 7px 0 16px rgba(0,0,0,0.6),
+                inset -3px 0 8px rgba(255,255,255,0.16),
+                inset 0 0 0 1px rgba(0,0,0,0.3),
+                7px 12px 18px rgba(0,0,0,0.62);
+        }
+
+        /* Grano de tela/piel */
+        .book-spine::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background-image: var(--grain);
+            opacity: 0.3;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+
+        /* Nervios: los resaltes que deja la encuadernación arriba y abajo */
+        .book-spine::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            background-image:
+                linear-gradient(180deg, transparent 15px, rgba(255,255,255,0.16) 15px 18px, rgba(0,0,0,0.42) 18px 21px, transparent 21px),
+                linear-gradient(0deg, transparent 15px, rgba(255,255,255,0.16) 15px 18px, rgba(0,0,0,0.42) 18px 21px, transparent 21px);
         }
 
         .book-spine:hover {
@@ -76,15 +168,18 @@
         .spine-title {
             writing-mode: vertical-rl;
             text-orientation: mixed;
-            color: rgba(255,255,255,0.9);
-            font-size: 1.3rem;
-            font-weight: bold;
+            font-family: var(--font-serif);
+            color: var(--gold);
+            font-size: 1.2rem;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+            letter-spacing: 0.16em;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.8), 0 0 12px rgba(240,223,180,0.28);
             transform: rotate(180deg);
             pointer-events: none;
-            max-height: 85%;
+            position: relative;
+            z-index: 2;
+            max-height: 86%;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -143,16 +238,37 @@
         }
 
         .cover-face-front {
-            box-shadow: inset 5px 0 20px rgba(0,0,0,0.6), 5px 5px 20px rgba(0,0,0,0.5);
-            /* Gradiente base, el color se inyecta por JS */
-            background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+            box-shadow:
+                inset -2px 0 0 rgba(255,255,255,0.09),
+                inset 0 2px 0 rgba(255,255,255,0.07),
+                inset 6px 0 26px rgba(0,0,0,0.55),
+                6px 8px 26px rgba(0,0,0,0.55);
+            /* El color de la piel lo inyecta JS; aquí van grano, brillo y la
+               sombra del cajo, la zona donde la tapa se dobla contra el lomo. */
+            background-image:
+                var(--grain),
+                linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 48%),
+                linear-gradient(90deg, rgba(0,0,0,0.55) 0 14px, rgba(0,0,0,0.18) 14px 26px, transparent 26px);
+            background-blend-mode: overlay, normal, normal;
+        }
+
+        #cover-title {
+            font-family: var(--font-serif);
+            letter-spacing: 0.015em;
+            text-shadow:
+                0 -1px 0 rgba(255,255,255,0.22),
+                0 2px 1px rgba(0,0,0,0.6),
+                0 8px 22px rgba(0,0,0,0.55);
         }
 
         .cover-face-back {
             transform: rotateY(180deg);
-            background-color: #d4c5a9;
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px);
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
+            background-color: #cfc0a2;
+            background-image:
+                var(--grain),
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.035) 10px, rgba(0,0,0,0.035) 20px);
+            background-blend-mode: multiply, normal;
+            box-shadow: inset 0 0 34px rgba(0,0,0,0.35), inset -6px 0 16px rgba(0,0,0,0.28);
             border-radius: 18px 2px 2px 18px;
         }
 
@@ -168,11 +284,24 @@
             height: calc(100% - 16px);
             background: var(--paper-color);
             border-radius: 2px 12px 12px 2px;
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.05);
-            border-right: 5px solid #e5d8b8;
-            border-bottom: 5px solid #e5d8b8;
+            box-shadow: inset 22px 0 34px -22px rgba(80,60,30,0.5), inset 0 0 40px rgba(0,0,0,0.05);
+            border-right: 5px solid #e3d5b1;
+            border-bottom: 5px solid #e3d5b1;
             z-index: 10;
             transform: translateZ(0);
+        }
+
+        /* Grano del papel, por encima del color y por debajo del contenido */
+        .pages-3d::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background-image: var(--grain);
+            opacity: 0.28;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .page-content-scroll {
@@ -188,6 +317,46 @@
             background-image: repeating-linear-gradient(transparent, transparent 31px, var(--paper-lines) 31px, var(--paper-lines) 32px);
             line-height: 32px;
             background-attachment: local;
+        }
+
+        /* Texto de las entradas: manuscrito, asentado sobre el renglón */
+        .hand-text {
+            font-family: var(--font-hand);
+            font-size: 1.5rem;
+            line-height: 32px;
+            color: var(--ink);
+        }
+        .hand-text::placeholder { color: rgba(93, 98, 116, 0.42); }
+
+        .ink { color: var(--ink); }
+        .ink-soft { color: var(--ink-soft); }
+
+        /* Controles discretos: en una página escrita, un botón de app canta mucho */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            border: 1px solid #cbbd9b;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.35);
+            color: var(--ink-soft);
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+        .pill:hover { background: rgba(0,0,0,0.045); border-color: #b6a684; color: var(--ink); }
+        .pill svg { flex: none; }
+
+        /* Solo mientras graba se permite el rojo */
+        #record-btn.rec-on {
+            color: #b3261e;
+            border-color: #d9a3a0;
+            background: rgba(179,38,30,0.06);
         }
 
         /* Estilo Polaroid */
@@ -562,7 +731,7 @@
                         
                         <div id="bookmark-ribbon" onclick="toggleBookmark()" class="bookmark" data-i18n-title="bookmarkRibbon"></div>
 
-                        <input type="text" id="page-title" class="w-full bg-transparent text-3xl md:text-4xl font-serif text-gray-800 border-none outline-none mb-8 placeholder-gray-400 text-center font-bold" data-i18n-placeholder="pageTitlePlaceholder" oninput="debounceSave()">
+                        <input type="text" id="page-title" class="w-full bg-transparent text-4xl md:text-5xl font-serif ink border-none outline-none mb-8 placeholder-gray-400 text-center font-bold" data-i18n-placeholder="pageTitlePlaceholder" oninput="debounceSave()">
 
                         <!-- Fecha, hora y lugar en una sola línea, justo bajo el título -->
                         <div id="metadata-container" class="hidden flex flex-wrap items-center justify-center gap-x-2 gap-y-1 -mt-6 mb-8 text-sm text-gray-600 font-sans">
@@ -579,46 +748,41 @@
                         <!-- Tira de polaroids: se rellena por JS desde currentPage.photos -->
                         <div id="photos-strip" class="flex flex-wrap justify-center items-start gap-6 mb-6"></div>
 
-                        <div class="flex justify-center gap-4 mb-8 font-sans">
-                            <label class="cursor-pointer border-2 border-dashed border-gray-400 rounded-xl px-6 py-5 text-gray-500 hover:bg-black hover:bg-opacity-5 transition flex flex-col items-center group">
-                                <span class="text-4xl mb-2 transform group-hover:scale-110 transition drop-shadow-sm">📸</span>
-                                <span class="font-medium text-sm" data-i18n="camera">Càmera</span>
+                        <div class="flex justify-center gap-3 mb-8">
+                            <label class="pill">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h1.6a2 2 0 001.7-.9l.6-1a2 2 0 011.7-.9h2.8a2 2 0 011.7.9l.6 1a2 2 0 001.7.9H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.2"/></svg>
+                                <span data-i18n="camera">Càmera</span>
                                 <!-- capture: abre directamente la cámara en móviles -->
                                 <input type="file" accept="image/*" capture="environment" hidden onchange="handlePhotoCapture(event)">
                             </label>
-                            <label class="cursor-pointer border-2 border-dashed border-gray-400 rounded-xl px-6 py-5 text-gray-500 hover:bg-black hover:bg-opacity-5 transition flex flex-col items-center group">
-                                <span class="text-4xl mb-2 transform group-hover:scale-110 transition drop-shadow-sm">🖼️</span>
-                                <span class="font-medium text-sm" data-i18n="gallery">Galeria</span>
+                            <label class="pill">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 16l-5-5-6 6-2.5-2.5L3 18"/></svg>
+                                <span data-i18n="gallery">Galeria</span>
                                 <!-- Sin capture: deja elegir fotos ya hechas, y varias a la vez -->
                                 <input type="file" accept="image/*" multiple hidden onchange="handlePhotoCapture(event)">
                             </label>
                         </div>
 
-                        <div class="w-full max-w-sm mx-auto mb-8">
-                            <button id="record-btn" onclick="toggleRecording()" class="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition flex justify-center items-center space-x-2 font-sans font-medium">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2z" clip-rule="evenodd"></path></svg>
-                                <span id="record-text">Grabar nota de voz</span>
-                            </button>
-                            
-                            <div id="audio-container" class="hidden bg-gray-200 rounded-xl p-3 shadow-inner relative border border-gray-300">
-                                <button onclick="removeAudio()" class="absolute -top-3 -right-3 bg-gray-800 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md text-xs hover:bg-red-600 transition font-sans border-2 border-white z-10">✕</button>
+                        <div class="w-full max-w-sm mx-auto mb-8 flex justify-center">
+                            <button id="record-btn" onclick="toggleRecording()" class="pill"></button>
+
+                            <div id="audio-container" class="hidden w-full rounded-xl p-3 relative border" style="background: rgba(0,0,0,0.035); border-color: #cbbd9b;">
+                                <button onclick="removeAudio()" class="absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition font-sans z-10 border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>
                                 <audio id="page-audio" controls class="w-full h-10 outline-none"></audio>
                             </div>
                         </div>
 
-                        <textarea id="page-text" class="w-full min-h-[350px] bg-transparent border-none outline-none resize-none font-serif text-gray-800 text-lg custom-lines p-1 mb-8" data-i18n-placeholder="textPlaceholder" oninput="debounceSave()"></textarea>
+                        <textarea id="page-text" class="w-full min-h-[352px] bg-transparent border-none outline-none resize-none hand-text custom-lines p-1 mb-8" data-i18n-placeholder="textPlaceholder" oninput="debounceSave()"></textarea>
 
-                        <div class="flex justify-between items-center border-t border-gray-300 pt-6 font-sans">
-                            <button onclick="prevPage()" class="p-2 text-gray-500 hover:text-gray-900 transition flex items-center bg-white bg-opacity-50 rounded-lg shadow-sm"><svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> <span data-i18n="prev">Ant.</span></button>
-                            <span class="text-sm text-gray-600 font-bold tracking-widest bg-white bg-opacity-50 px-3 py-1 rounded-full shadow-inner" id="page-indicator">1 / 1</span>
-                            <button onclick="nextPage()" class="p-2 text-gray-500 hover:text-gray-900 transition flex items-center bg-white bg-opacity-50 rounded-lg shadow-sm"><span data-i18n="next">Seg.</span> <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                        <div class="flex justify-between items-center pt-6" style="border-top: 1px solid #d8caa8">
+                            <button onclick="prevPage()" class="pill"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg> <span data-i18n="prev">Ant.</span></button>
+                            <span class="text-xs ink-soft font-sans tracking-[0.2em]" id="page-indicator">1 / 1</span>
+                            <button onclick="nextPage()" class="pill"><span data-i18n="next">Seg.</span> <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
                         </div>
-                        <div class="flex gap-3 mt-4 font-sans">
-                            <button onclick="addNewPage()" class="flex-1 py-3 bg-transparent border-2 border-dashed border-gray-400 text-gray-600 rounded-lg hover:bg-black hover:bg-opacity-5 transition font-medium" data-i18n="addPage">
-                                + Afegir pàgina nova
-                            </button>
-                            <button onclick="deleteCurrentPage()" class="px-4 py-3 bg-transparent border-2 border-dashed border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition font-medium flex items-center justify-center" data-i18n-title="deletePage">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <div class="flex justify-center gap-3 mt-5">
+                            <button onclick="addNewPage()" class="pill" data-i18n="addPage">+ Afegir pàgina nova</button>
+                            <button onclick="deleteCurrentPage()" class="pill" data-i18n-title="deletePage">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.9 12.1a2 2 0 01-2 1.9H7.9a2 2 0 01-2-1.9L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
                     </div>
@@ -1174,13 +1338,23 @@
             }
 
             journals.forEach(journal => {
+                const slot = document.createElement('div');
+                slot.className = 'book-slot';
+
                 const book = document.createElement('div');
                 book.className = `book-spine ${isEditMode ? 'wobble' : ''}`;
+                const forma = spineShape(journal.id);
+                book.style.width = forma.w + 'px';
+                book.style.height = forma.h + 'px';
                 book.style.backgroundColor = journal.color;
 
                 const title = document.createElement('div');
                 title.className = 'spine-title';
                 title.textContent = journal.title;
+                // El título se encoge hasta caber a lo alto del lomo, en vez de cortarse
+                const disponible = forma.h * 0.86;
+                const porCaracter = Math.max(journal.title.length, 1) * 1.18;
+                title.style.fontSize = Math.max(0.6, Math.min(1.2, disponible / porCaracter / 16)) + 'rem';
                 book.appendChild(title);
 
                 if (isEditMode) {
@@ -1208,8 +1382,26 @@
                     attachLongPress(book, () => exportJournalPdf(journal.id));
                 }
 
-                container.appendChild(book);
+                slot.appendChild(book);
+                container.appendChild(slot);
             });
+        }
+
+        // Grosor y altura del tomo derivados del id: siempre los mismos para el
+        // mismo diario, pero distintos entre ellos. Una estantería con todos los
+        // libros iguales no parece una estantería.
+        function spineShape(id) {
+            let h = 2166136261;
+            for(let i = 0; i < id.length; i++) {
+                h ^= id.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            h = h >>> 0;
+            return {
+                w: 56 + (h % 5) * 8,           // 56 a 88 px
+                // >>> y no >>: el desplazamiento con signo volvía a dar negativos
+                h: 196 + ((h >>> 4) % 6) * 11  // 196 a 251 px
+            };
         }
 
         function toggleEditMode() {
@@ -1999,20 +2191,15 @@
             const fotos = (page.photos || []).slice(0, 3).map((src, i) =>
                 `<div class="polaroid polaroid-thumb" style="transform: rotate(${photoTilt(i)}deg)"><img class="w-full h-auto object-cover rounded-sm" src="${src}" alt=""></div>`
             ).join('');
-            const meta = page.date
-                ? `<div class="w-full max-w-sm mx-auto mb-6 bg-black bg-opacity-[0.03] rounded-lg p-3 text-center text-sm text-gray-700 font-sans border border-gray-300">
-                       ${escapeHtml(page.date)} · ${escapeHtml(page.time || '')}<br>
-                       <span class="text-blue-700 underline">${escapeHtml(page.locationName || '')}</span>
-                   </div>`
-                : '';
             const audio = page.audio
                 ? `<div class="w-full max-w-sm mx-auto mb-6 bg-gray-200 rounded-xl p-4 border border-gray-300 text-center text-gray-500 font-sans text-sm">▶ ▬▬▬▬▬▬▬▬▬▬</div>`
                 : '';
             return `
-                <h2 class="text-3xl md:text-4xl font-serif text-gray-800 mb-8 text-center font-bold">${escapeHtml(page.title || '')}</h2>
+                <h2 class="text-4xl md:text-5xl font-serif ink mb-6 text-center font-bold">${escapeHtml(page.title || '')}</h2>
+                ${page.date ? `<p class="text-center text-sm ink-soft font-sans -mt-3 mb-8">${escapeHtml([page.date, page.time, page.locationName].filter(Boolean).join(' · '))}</p>` : ''}
                 <div class="flex flex-wrap justify-center items-start gap-6 mb-6">${fotos}</div>
-                ${meta}${audio}
-                <div class="font-serif text-gray-800 text-lg custom-lines whitespace-pre-wrap p-1">${escapeHtml(page.text || '')}</div>
+                ${audio}
+                <div class="hand-text custom-lines whitespace-pre-wrap p-1">${escapeHtml(page.text || '')}</div>
             `;
         }
 
@@ -2171,7 +2358,7 @@
             const fotos = (currentPage && currentPage.photos) || [];
             strip.innerHTML = fotos.map((src, i) => `
                 <div class="polaroid polaroid-thumb relative transition duration-300 hover:rotate-0" style="transform: rotate(${photoTilt(i)}deg)">
-                    <button data-idx="${i}" class="quitar-foto absolute -top-3 -right-3 bg-gray-800 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg hover:bg-red-600 transition z-10 font-sans border-2 border-white">✕</button>
+                    <button data-idx="${i}" class="quitar-foto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition z-10 font-sans border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>
                     <img class="w-full h-auto object-cover rounded-sm" src="${src}" alt="">
                 </div>
             `).join('');
@@ -2337,13 +2524,14 @@
         let isRecording = false;
         let recordingStream;
 
-        const MIC_ICON = `<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2z" clip-rule="evenodd"></path></svg>`;
+        const MIC_ICON = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path stroke-linecap="round" d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/></svg>`;
 
         function setRecordButton(state) {
             const btn = document.getElementById('record-btn');
             btn.classList.toggle('recording-pulse', state === 'grabando');
+            btn.classList.toggle('rec-on', state === 'grabando');
             if(state === 'grabando') {
-                btn.innerHTML = `<span class="w-3 h-3 bg-white rounded-full animate-ping mr-3"></span> <span id="record-text">${escapeHtml(t('stopRecording'))}</span>`;
+                btn.innerHTML = `<span class="w-2.5 h-2.5 rounded-full animate-ping" style="background:#b3261e"></span> <span id="record-text">${escapeHtml(t('stopRecording'))}</span>`;
             } else if(state === 'procesando') {
                 btn.innerHTML = `${MIC_ICON} <span id="record-text">${escapeHtml(t('processing'))}</span>`;
             } else {
