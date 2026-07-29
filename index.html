@@ -505,6 +505,33 @@
         /* Tira de polaroids (varias fotos por página) */
         .polaroid-thumb { width: 150px; }
         @media (min-width: 640px) { .polaroid-thumb { width: 175px; } }
+        /* Las fotos son 1:1, así que la ventana también */
+        .polaroid img { aspect-ratio: 1 / 1; object-fit: cover; cursor: zoom-in; }
+
+        /* Recortador 1:1 */
+        #crop-frame {
+            position: relative;
+            width: min(84vw, 62vh);
+            height: min(84vw, 62vh);
+            overflow: hidden;
+            background: #111;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.12);
+            touch-action: none;
+            cursor: grab;
+        }
+        #crop-frame:active { cursor: grabbing; }
+        #crop-canvas { display: block; width: 100%; height: 100%; }
+        .crop-guides {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(to right, rgba(255,255,255,0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+            background-size: 33.333% 33.333%;
+            background-position: 33.333% 33.333%;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+        }
 
         /* Pulsación larga sobre un tomo */
         .book-spine {
@@ -753,13 +780,13 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h1.6a2 2 0 001.7-.9l.6-1a2 2 0 011.7-.9h2.8a2 2 0 011.7.9l.6 1a2 2 0 001.7.9H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.2"/></svg>
                                 <span data-i18n="camera">Càmera</span>
                                 <!-- capture: abre directamente la cámara en móviles -->
-                                <input type="file" accept="image/*" capture="environment" hidden onchange="handlePhotoCapture(event)">
+                                <input type="file" accept="image/*" capture="environment" hidden onchange="handlePhotoCapture(event, 'camara')">
                             </label>
                             <label class="pill">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 16l-5-5-6 6-2.5-2.5L3 18"/></svg>
                                 <span data-i18n="gallery">Galeria</span>
                                 <!-- Sin capture: deja elegir fotos ya hechas, y varias a la vez -->
-                                <input type="file" accept="image/*" multiple hidden onchange="handlePhotoCapture(event)">
+                                <input type="file" accept="image/*" multiple hidden onchange="handlePhotoCapture(event, 'galeria')">
                             </label>
                         </div>
 
@@ -847,6 +874,26 @@
         </div>
     </div>
 
+    <!-- Encuadre 1:1 de las fotos de la galería -->
+    <div id="crop-overlay" class="fixed inset-0 z-[110] hidden flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-5 gap-4">
+        <p id="crop-title" class="text-amber-100 font-sans text-base tracking-wide" data-i18n="cropTitle">Enquadra la foto</p>
+        <div id="crop-frame">
+            <canvas id="crop-canvas"></canvas>
+            <div class="crop-guides"></div>
+        </div>
+        <input type="range" id="crop-zoom" min="100" max="320" value="100" class="w-64 max-w-full accent-amber-500">
+        <p id="crop-hint" class="text-amber-200/60 font-sans text-xs text-center" data-i18n="cropHint">Arrossega per moure, pessiga per ampliar</p>
+        <div class="flex gap-3">
+            <button id="crop-cancel" class="px-5 py-2 rounded-full border border-amber-200/40 text-amber-100 font-sans text-sm hover:bg-white/10 transition" data-i18n="cancel">Cancel·lar</button>
+            <button id="crop-confirm" class="px-5 py-2 rounded-full bg-amber-600 text-white font-sans text-sm hover:bg-amber-700 transition shadow-lg" data-i18n="cropUse">Fer servir</button>
+        </div>
+    </div>
+
+    <!-- Foto a pantalla completa -->
+    <div id="lightbox" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/92 backdrop-blur-sm" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="" class="max-w-[94vw] max-h-[88vh] shadow-2xl">
+    </div>
+
     <!-- Documento que se maqueta solo al exportar a PDF -->
     <div id="print-root"></div>
 
@@ -909,7 +956,8 @@
                 pdfPageOf: 'Pàgina {n} de {total}', pdfPagesCount: '{n} pàgines', pdfPagesCount1: '1 pàgina',
                 pdfAudioNote: 'Aquesta pàgina té una nota de veu, que només es pot escoltar a l\'app.',
                 pdfPrintFallbackTitle: 'S\'obrirà la finestra d\'impressió',
-                pdfPrintFallbackMsg: 'Aquest diari no es pot descarregar directament. S\'obrirà el diàleg d\'impressió: tria «Desa com a PDF».'
+                pdfPrintFallbackMsg: 'Aquest diari no es pot descarregar directament. S\'obrirà el diàleg d\'impressió: tria «Desa com a PDF».',
+                cropTitle: 'Enquadra la foto', cropHint: 'Arrossega per moure, pessiga per ampliar', cropUse: 'Fer servir'
             },
             es: {
                 appTitle: 'Mis diarios', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Hecho',
@@ -941,7 +989,8 @@
                 pdfPageOf: 'Página {n} de {total}', pdfPagesCount: '{n} páginas', pdfPagesCount1: '1 página',
                 pdfAudioNote: 'Esta página tiene una nota de voz, que solo se puede escuchar en la app.',
                 pdfPrintFallbackTitle: 'Se abrirá la ventana de impresión',
-                pdfPrintFallbackMsg: 'Este diario no se puede descargar directamente. Se abrirá el diálogo de impresión: elige «Guardar como PDF».'
+                pdfPrintFallbackMsg: 'Este diario no se puede descargar directamente. Se abrirá el diálogo de impresión: elige «Guardar como PDF».',
+                cropTitle: 'Encuadra la foto', cropHint: 'Arrastra para mover, pellizca para ampliar', cropUse: 'Usar'
             },
             en: {
                 appTitle: 'My journals', export: 'Export', import: 'Import', edit: 'Edit', done: 'Done',
@@ -973,7 +1022,8 @@
                 pdfPageOf: 'Page {n} of {total}', pdfPagesCount: '{n} pages', pdfPagesCount1: '1 page',
                 pdfAudioNote: 'This page has a voice note, which can only be played in the app.',
                 pdfPrintFallbackTitle: 'The print window will open',
-                pdfPrintFallbackMsg: 'This journal cannot be downloaded directly. The print dialog will open: choose "Save as PDF".'
+                pdfPrintFallbackMsg: 'This journal cannot be downloaded directly. The print dialog will open: choose "Save as PDF".',
+                cropTitle: 'Frame the photo', cropHint: 'Drag to move, pinch to zoom', cropUse: 'Use'
             },
             fr: {
                 appTitle: 'Mes carnets', export: 'Exporter', import: 'Importer', edit: 'Modifier', done: 'Terminé',
@@ -1005,7 +1055,8 @@
                 pdfPageOf: 'Page {n} sur {total}', pdfPagesCount: '{n} pages', pdfPagesCount1: '1 page',
                 pdfAudioNote: 'Cette page contient une note vocale, qui ne peut être écoutée que dans l\'application.',
                 pdfPrintFallbackTitle: 'La fenêtre d\'impression va s\'ouvrir',
-                pdfPrintFallbackMsg: 'Ce carnet ne peut pas être téléchargé directement. La boîte de dialogue d\'impression va s\'ouvrir : choisissez « Enregistrer au format PDF ».'
+                pdfPrintFallbackMsg: 'Ce carnet ne peut pas être téléchargé directement. La boîte de dialogue d\'impression va s\'ouvrir : choisissez « Enregistrer au format PDF ».',
+                cropTitle: 'Cadrez la photo', cropHint: 'Faites glisser pour déplacer, pincez pour zoomer', cropUse: 'Utiliser'
             },
             de: {
                 appTitle: 'Meine Tagebücher', export: 'Exportieren', import: 'Importieren', edit: 'Bearbeiten', done: 'Fertig',
@@ -1037,7 +1088,8 @@
                 pdfPageOf: 'Seite {n} von {total}', pdfPagesCount: '{n} Seiten', pdfPagesCount1: '1 Seite',
                 pdfAudioNote: 'Diese Seite enthält eine Sprachnotiz, die sich nur in der App abspielen lässt.',
                 pdfPrintFallbackTitle: 'Das Druckfenster wird geöffnet',
-                pdfPrintFallbackMsg: 'Dieses Tagebuch lässt sich nicht direkt herunterladen. Der Druckdialog wird geöffnet: wähle dort „Als PDF sichern".'
+                pdfPrintFallbackMsg: 'Dieses Tagebuch lässt sich nicht direkt herunterladen. Der Druckdialog wird geöffnet: wähle dort „Als PDF sichern".',
+                cropTitle: 'Foto ausrichten', cropHint: 'Ziehen zum Verschieben, Zoomen mit zwei Fingern', cropUse: 'Verwenden'
             },
             zh: {
                 appTitle: '我的日记', export: '导出', import: '导入', edit: '编辑', done: '完成',
@@ -1069,7 +1121,8 @@
                 pdfPageOf: '第 {n} 页，共 {total} 页', pdfPagesCount: '共 {n} 页', pdfPagesCount1: '共 1 页',
                 pdfAudioNote: '本页含有语音笔记，只能在应用中播放。',
                 pdfPrintFallbackTitle: '将打开打印窗口',
-                pdfPrintFallbackMsg: '本日记无法直接下载。将打开打印对话框：请选择「存储为 PDF」。'
+                pdfPrintFallbackMsg: '本日记无法直接下载。将打开打印对话框：请选择「存储为 PDF」。',
+                cropTitle: '调整取景', cropHint: '拖动移动，双指缩放', cropUse: '使用'
             }
         };
 
@@ -1453,8 +1506,11 @@
         }
 
         function createEmptyPage() {
+            // photos[] y no photo: quien se salte esto rompe el adjuntar fotos en
+            // todo lo que se cree dentro de la sesión, porque normalizePage solo
+            // pasa por lo que viene de la base de datos o de una importación.
             return {
-                title: '', photo: null, date: null, time: null, lat: null, lng: null,
+                title: '', photos: [], date: null, time: null, lat: null, lng: null,
                 locationName: null, audio: null, text: '', bookmarked: false
             };
         }
@@ -2359,64 +2415,201 @@
             strip.innerHTML = fotos.map((src, i) => `
                 <div class="polaroid polaroid-thumb relative transition duration-300 hover:rotate-0" style="transform: rotate(${photoTilt(i)}deg)">
                     <button data-idx="${i}" class="quitar-foto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition z-10 font-sans border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>
-                    <img class="w-full h-auto object-cover rounded-sm" src="${src}" alt="">
+                    <img data-idx="${i}" class="w-full h-auto rounded-sm" src="${src}" alt="">
                 </div>
             `).join('');
             strip.querySelectorAll('.quitar-foto').forEach(b => {
                 b.onclick = () => removePhoto(Number(b.dataset.idx));
             });
+            strip.querySelectorAll('img').forEach(im => {
+                im.onclick = () => openLightbox(im.src);
+            });
         }
 
-        function handlePhotoCapture(event) {
+        const FOTO_LADO = 800;   // lado del cuadrado que se guarda
+
+        function cargarImagen(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Recorte cuadrado por el centro, sin preguntar
+        function recorteCentrado(img) {
+            const canvas = document.createElement('canvas');
+            canvas.width = FOTO_LADO;
+            canvas.height = FOTO_LADO;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, FOTO_LADO, FOTO_LADO);
+            const lado = Math.min(img.width, img.height);
+            ctx.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, FOTO_LADO, FOTO_LADO);
+            return canvas.toDataURL('image/jpeg', 0.72);
+        }
+
+        // Encuadre a mano. Devuelve el data URL, o null si se cancela.
+        // La cámara del sistema no se puede forzar a 1:1 desde la web, así que el
+        // recorte se hace después; en las de galería lo decide el usuario.
+        function abrirRecorte(img) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('crop-overlay');
+                const frame = document.getElementById('crop-frame');
+                const canvas = document.getElementById('crop-canvas');
+                const zoom = document.getElementById('crop-zoom');
+                const ctx = canvas.getContext('2d');
+
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+
+                const lado = Math.round(frame.clientWidth);
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                canvas.width = lado * dpr;
+                canvas.height = lado * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                const base = Math.max(lado / img.width, lado / img.height); // que siempre cubra
+                let escala = 1;
+                let ox = 0, oy = 0;
+
+                const anchoActual = () => img.width * base * escala;
+                const altoActual = () => img.height * base * escala;
+
+                const pintar = () => {
+                    // La imagen nunca puede dejar hueco dentro del cuadro
+                    ox = Math.min(0, Math.max(lado - anchoActual(), ox));
+                    oy = Math.min(0, Math.max(lado - altoActual(), oy));
+                    ctx.fillStyle = '#111111';
+                    ctx.fillRect(0, 0, lado, lado);
+                    ctx.drawImage(img, ox, oy, anchoActual(), altoActual());
+                };
+
+                const ampliarHaciaElCentro = (nueva) => {
+                    const k = nueva / escala;
+                    ox = lado / 2 - (lado / 2 - ox) * k;
+                    oy = lado / 2 - (lado / 2 - oy) * k;
+                    escala = nueva;
+                };
+
+                ox = (lado - anchoActual()) / 2;
+                oy = (lado - altoActual()) / 2;
+                pintar();
+
+                zoom.value = 100;
+                zoom.oninput = () => { ampliarHaciaElCentro(Number(zoom.value) / 100); pintar(); };
+
+                const punteros = new Map();
+                let distInicial = 0, escalaInicial = 1;
+
+                const onDown = (e) => {
+                    try { frame.setPointerCapture(e.pointerId); } catch(err) { /* sin captura */ }
+                    punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    if(punteros.size === 2) {
+                        const [a, b] = [...punteros.values()];
+                        distInicial = Math.hypot(a.x - b.x, a.y - b.y);
+                        escalaInicial = escala;
+                    }
+                };
+                const onMove = (e) => {
+                    if(!punteros.has(e.pointerId)) return;
+                    const antes = punteros.get(e.pointerId);
+                    punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+                    if(punteros.size === 2 && distInicial > 0) {
+                        const [a, b] = [...punteros.values()];
+                        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+                        ampliarHaciaElCentro(Math.min(3.2, Math.max(1, escalaInicial * (dist / distInicial))));
+                        zoom.value = Math.round(escala * 100);
+                    } else if(punteros.size === 1) {
+                        ox += e.clientX - antes.x;
+                        oy += e.clientY - antes.y;
+                    }
+                    pintar();
+                };
+                const onUp = (e) => {
+                    punteros.delete(e.pointerId);
+                    if(punteros.size < 2) distInicial = 0;
+                };
+
+                frame.addEventListener('pointerdown', onDown);
+                frame.addEventListener('pointermove', onMove);
+                frame.addEventListener('pointerup', onUp);
+                frame.addEventListener('pointercancel', onUp);
+
+                const cerrar = (resultado) => {
+                    frame.removeEventListener('pointerdown', onDown);
+                    frame.removeEventListener('pointermove', onMove);
+                    frame.removeEventListener('pointerup', onUp);
+                    frame.removeEventListener('pointercancel', onUp);
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    resolve(resultado);
+                };
+
+                document.getElementById('crop-cancel').onclick = () => cerrar(null);
+                document.getElementById('crop-confirm').onclick = () => {
+                    // El mismo encuadre que se ve, escalado al tamaño de guardado
+                    const f = FOTO_LADO / lado;
+                    const out = document.createElement('canvas');
+                    out.width = FOTO_LADO;
+                    out.height = FOTO_LADO;
+                    const octx = out.getContext('2d');
+                    octx.fillStyle = '#ffffff';
+                    octx.fillRect(0, 0, FOTO_LADO, FOTO_LADO);
+                    octx.drawImage(img, ox * f, oy * f, anchoActual() * f, altoActual() * f);
+                    cerrar(out.toDataURL('image/jpeg', 0.72));
+                };
+            });
+        }
+
+        async function handlePhotoCapture(event, modo) {
             const files = Array.from(event.target.files || []);
             event.target.value = ''; // Permitir volver a elegir la misma foto
             if(files.length === 0 || !currentPage) return;
 
-            const targetPage = currentPage;
+            const targetPage = normalizePage(currentPage);
             const eraLaPrimera = targetPage.photos.length === 0;
 
-            // Se procesan en serie para que el orden final sea el de selección
-            const procesar = (i) => {
-                if(i >= files.length) {
-                    if(currentPage === targetPage) renderPhotosStrip();
-                    // Con la primera foto de la página capturamos fecha, hora y lugar
-                    if(eraLaPrimera) captureMetadata();
-                    else saveCurrentState();
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        // Redimensionar para no saturar IndexedDB
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800;
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        targetPage.photos.push(canvas.toDataURL('image/jpeg', 0.7));
-                        procesar(i + 1);
-                    };
-                    img.onerror = () => procesar(i + 1);
-                    img.src = e.target.result;
-                };
-                reader.onerror = () => procesar(i + 1);
-                reader.readAsDataURL(files[i]);
-            };
-            procesar(0);
+            let añadidas = 0;
+            for(const file of files) {
+                let img;
+                try { img = await cargarImagen(file); } catch(err) { continue; }
+                const dataUrl = modo === 'galeria' ? await abrirRecorte(img) : recorteCentrado(img);
+                if(dataUrl) { targetPage.photos.push(dataUrl); añadidas++; }
+            }
+            if(añadidas === 0) return;
+
+            if(currentPage === targetPage) renderPhotosStrip();
+            // Con la primera foto de la página capturamos fecha, hora y lugar
+            if(eraLaPrimera) captureMetadata();
+            else saveCurrentState();
+        }
+
+        function openLightbox(src) {
+            const lb = document.getElementById('lightbox');
+            document.getElementById('lightbox-img').src = src;
+            lb.classList.remove('hidden');
+            lb.classList.add('flex');
+        }
+
+        function closeLightbox() {
+            const lb = document.getElementById('lightbox');
+            lb.classList.add('hidden');
+            lb.classList.remove('flex');
+            document.getElementById('lightbox-img').src = '';
         }
 
         function removePhoto(index) {
             Modal.showMsg(t('deletePhotoTitle'), t('deletePhotoMsg'), true, () => {
                 if(!currentPage) return;
-                currentPage.photos.splice(index, 1);
+                normalizePage(currentPage).photos.splice(index, 1);
                 // Los metadatos solo se borran al quitar la última foto de la página
                 if(currentPage.photos.length === 0) {
                     currentPage.date = null;
