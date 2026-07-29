@@ -1745,6 +1745,38 @@
         const PDF_LIMITE_Y = 297 - PDF_MARGEN_INF;
         const PT = 0.3527777;                        // 1 punto tipográfico en mm
 
+        // Las mismas fuentes que en pantalla, incrustadas en el PDF. jsPDF solo
+        // entiende TTF, así que en assets/fonts hay woff2 para la web y ttf para aquí.
+        const PDF_FUENTES = [
+            { archivo: 'assets/fonts/cormorant-regular.ttf',  vfs: 'Cormorant-Regular.ttf',  nombre: 'Cormorant', estilo: 'normal' },
+            { archivo: 'assets/fonts/cormorant-semibold.ttf', vfs: 'Cormorant-SemiBold.ttf', nombre: 'Cormorant', estilo: 'bold' },
+            { archivo: 'assets/fonts/caveat.ttf',             vfs: 'Caveat-Regular.ttf',     nombre: 'Caveat',    estilo: 'normal' }
+        ];
+        let fuentesPdfB64 = null;
+
+        async function cargarFuentesPdf() {
+            if(fuentesPdfB64) return fuentesPdfB64;
+            const leer = async (url) => {
+                const buf = await (await fetch(url)).arrayBuffer();
+                const bytes = new Uint8Array(buf);
+                let bin = '';
+                const trozo = 8192;   // en trozos: apply() peta con arrays enormes
+                for(let i = 0; i < bytes.length; i += trozo) {
+                    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + trozo));
+                }
+                return btoa(bin);
+            };
+            fuentesPdfB64 = await Promise.all(PDF_FUENTES.map(f => leer(f.archivo)));
+            return fuentesPdfB64;
+        }
+
+        function registrarFuentes(doc, b64) {
+            PDF_FUENTES.forEach((f, i) => {
+                doc.addFileToVFS(f.vfs, b64[i]);
+                doc.addFont(f.vfs, f.nombre, f.estilo);
+            });
+        }
+
         const PDF_TINTA = [26, 26, 26];
         const PDF_GRIS = [107, 107, 107];
         const PDF_GRIS_CLARO = [143, 143, 143];
@@ -1785,8 +1817,8 @@
 
         // Encabezado corrido: se repite en cada hoja, también en las de continuación
         function pdfCabecera(doc, journal, n, total) {
-            doc.setFont('times', 'normal');
-            doc.setFontSize(7.5);
+            doc.setFont('Cormorant', 'normal');
+            doc.setFontSize(8);
             doc.setTextColor(...PDF_GRIS_CLARO);
             doc.setCharSpace(0.5);
 
@@ -1808,47 +1840,32 @@
             return PDF_MARGEN_SUP + 12;
         }
 
-        // jsPDF justifica también la última línea de cada párrafo, que queda fatal,
-        // así que el reparto de espacios se hace a mano palabra a palabra.
+        // El cuerpo va en la misma manuscrita que la pantalla. Sin justificar: una
+        // letra a mano con los espacios estirados para cuadrar el margen canta muchísimo.
         function pdfTexto(doc, texto, y, journal, n, total) {
-            const tam = 11.5;
-            const alturaLinea = tam * 1.75 * PT;
+            const tam = 15;
+            const alturaLinea = tam * 1.32 * PT;
 
             const estiloCuerpo = () => {
-                doc.setFont('times', 'normal');
+                doc.setFont('Caveat', 'normal');
                 doc.setFontSize(tam);
                 doc.setTextColor(...PDF_TINTA);
             };
             estiloCuerpo();
-            const anchoEspacio = doc.getTextWidth(' ');
 
             for(const parrafo of String(texto).split('\n')) {
                 if(parrafo.trim() === '') { y += alturaLinea * 0.6; continue; }
 
-                const lineas = doc.splitTextToSize(parrafo, PDF_ANCHO);
-                lineas.forEach((linea, i) => {
+                for(const linea of doc.splitTextToSize(parrafo, PDF_ANCHO)) {
                     if(y + alturaLinea > PDF_LIMITE_Y) {
                         doc.addPage();
                         y = pdfCabecera(doc, journal, n, total);
                         estiloCuerpo();
                     }
-                    const palabras = linea.split(' ').filter(p => p.length);
-                    const anchoPalabras = palabras.reduce((s, p) => s + doc.getTextWidth(p), 0);
-                    const hueco = palabras.length > 1 ? (PDF_ANCHO - anchoPalabras) / (palabras.length - 1) : 0;
-                    const ultima = i === lineas.length - 1;
-
-                    if(ultima || palabras.length < 2 || hueco > anchoEspacio * 3.5) {
-                        doc.text(linea, PDF_MARGEN_X, y);
-                    } else {
-                        let x = PDF_MARGEN_X;
-                        for(const p of palabras) {
-                            doc.text(p, x, y);
-                            x += doc.getTextWidth(p) + hueco;
-                        }
-                    }
+                    doc.text(linea, PDF_MARGEN_X, y);
                     y += alturaLinea;
-                });
-                y += alturaLinea * 0.55;
+                }
+                y += alturaLinea * 0.5;
             }
             return y;
         }
@@ -1863,41 +1880,60 @@
                 }
             });
 
-            const marco = (x, yy, w, h) => {
+            // Una polaroid: cartón blanco, ventana cuadrada y el margen de abajo
+            // más ancho que los otros tres.
+            const polaroid = (f, x, yy, ancho) => {
+                const margen = ancho * 0.055;
+                const ventana = ancho - margen * 2;
+                const pie = ancho * 0.17;
+                const alto = margen + ventana + pie;
+
+                doc.setFillColor(0, 0, 0);
+                doc.setGState(new doc.GState({ opacity: 0.13 }));
+                doc.roundedRect(x + 0.9, yy + 1.2, ancho, alto, 0.6, 0.6, 'F');
+                doc.setGState(new doc.GState({ opacity: 1 }));
+
+                doc.setFillColor(255, 255, 255);
                 doc.setDrawColor(...PDF_BORDE_FOTO);
                 doc.setLineWidth(0.2);
-                doc.rect(x, yy, w, h);
+                doc.roundedRect(x, yy, ancho, alto, 0.6, 0.6, 'FD');
+
+                // La foto se ajusta dentro de la ventana sin deformarse
+                let iw = ventana, ih = ventana * f.ratio;
+                if(ih > ventana) { ih = ventana; iw = ventana / f.ratio; }
+                doc.addImage(f.src, pdfFormatoImagen(f.src),
+                    x + margen + (ventana - iw) / 2, yy + margen + (ventana - ih) / 2, iw, ih);
+
+                return alto;
             };
 
-            if(props.length === 1) {
-                const f = props[0];
-                let w = PDF_ANCHO;
-                let h = w * f.ratio;
-                const maxH = Math.min(130, PDF_LIMITE_Y - y);
-                if(h > maxH) { h = maxH; w = h / f.ratio; }
-                const x = PDF_MARGEN_X + (PDF_ANCHO - w) / 2;
-                doc.addImage(f.src, pdfFormatoImagen(f.src), x, y, w, h);
-                marco(x, y, w, h);
-                return y + h + 8;
-            }
+            const altoPolaroid = (ancho, ratio) => ancho * 0.055 + (ancho - ancho * 0.11) + ancho * 0.17;
 
-            const colW = (PDF_ANCHO - 5) / 2;
-            for(let i = 0; i < props.length; i += 2) {
-                const fila = props.slice(i, i + 2);
-                const hFila = Math.max(...fila.map(f => colW * f.ratio));
-                if(y + hFila > PDF_LIMITE_Y) {
+            if(props.length === 1) {
+                const ancho = Math.min(96, PDF_ANCHO);
+                const alto = altoPolaroid(ancho);
+                if(y + alto > PDF_LIMITE_Y) {
                     doc.addPage();
                     y = pdfCabecera(doc, journal, n, total);
                 }
-                fila.forEach((f, k) => {
-                    const h = colW * f.ratio;
-                    const x = PDF_MARGEN_X + k * (colW + 5);
-                    doc.addImage(f.src, pdfFormatoImagen(f.src), x, y, colW, h);
-                    marco(x, y, colW, h);
-                });
-                y += hFila + 5;
+                polaroid(props[0], PDF_MARGEN_X + (PDF_ANCHO - ancho) / 2, y, ancho);
+                return y + alto + 9;
             }
-            return y + 3;
+
+            const hueco = 8;
+            const colW = (PDF_ANCHO - hueco) / 2;
+            const altoFila = altoPolaroid(colW);
+            for(let i = 0; i < props.length; i += 2) {
+                if(y + altoFila > PDF_LIMITE_Y) {
+                    doc.addPage();
+                    y = pdfCabecera(doc, journal, n, total);
+                }
+                props.slice(i, i + 2).forEach((f, k) => {
+                    polaroid(f, PDF_MARGEN_X + k * (colW + hueco), y, colW);
+                });
+                y += altoFila + hueco;
+            }
+            return y + 2;
         }
 
         function pdfPortada(doc, journal) {
@@ -1906,7 +1942,7 @@
             const recuento = total === 1 ? t('pdfPagesCount1') : t('pdfPagesCount', { n: total });
             const centro = 105;
 
-            doc.setFont('times', 'bold');
+            doc.setFont('Cormorant', 'bold');
             doc.setFontSize(34);
             const lineasTitulo = doc.splitTextToSize(String(journal.title), 130);
             const altoTitulo = lineasTitulo.length * 34 * 1.15 * PT;
@@ -1926,7 +1962,7 @@
             doc.setCharSpace(0);
             y += 9;
 
-            doc.setFont('times', 'bold');
+            doc.setFont('Cormorant', 'bold');
             doc.setFontSize(34);
             doc.setTextColor(...PDF_TINTA);
             lineasTitulo.forEach(l => {
@@ -1940,7 +1976,7 @@
             doc.line(centro - 13, y, centro + 13, y);
             y += 10;
 
-            doc.setFont('times', 'italic');
+            doc.setFont('Cormorant', 'normal');
             doc.setFontSize(10.5);
             doc.setTextColor(95, 95, 95);
             if(rango) { doc.text(rango, centro, y, { align: 'center' }); y += 5.5; }
@@ -1953,8 +1989,9 @@
         }
 
         async function generarPdfConLibreria(journal) {
-            const jsPDF = await loadJsPDF();
+            const [jsPDF, b64] = await Promise.all([loadJsPDF(), cargarFuentesPdf()]);
             const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+            registrarFuentes(doc, b64);
             const total = journal.pages.length;
 
             pdfPortada(doc, journal);
@@ -1964,7 +2001,7 @@
                 let y = pdfCabecera(doc, journal, i + 1, total);
 
                 if(page.title) {
-                    doc.setFont('times', 'bold');
+                    doc.setFont('Cormorant', 'bold');
                     doc.setFontSize(21);
                     doc.setTextColor(...PDF_TINTA);
                     doc.splitTextToSize(String(page.title), PDF_ANCHO).forEach(l => {
@@ -1976,7 +2013,7 @@
 
                 const linea = [page.date, page.time, page.locationName].filter(Boolean).join(' · ');
                 if(linea) {
-                    doc.setFont('times', 'italic');
+                    doc.setFont('Cormorant', 'normal');
                     doc.setFontSize(9.5);
                     doc.setTextColor(...PDF_GRIS);
                     doc.text(linea, PDF_MARGEN_X, y);
@@ -1990,7 +2027,7 @@
                 if(texto) {
                     y = pdfTexto(doc, texto, y, journal, i + 1, total);
                 } else if(fotos.length === 0) {
-                    doc.setFont('times', 'italic');
+                    doc.setFont('Cormorant', 'normal');
                     doc.setFontSize(10);
                     doc.setTextColor(165, 165, 165);
                     doc.text('—', PDF_MARGEN_X, y);
@@ -2002,7 +2039,7 @@
                         doc.addPage();
                         y = pdfCabecera(doc, journal, i + 1, total);
                     }
-                    doc.setFont('times', 'italic');
+                    doc.setFont('Cormorant', 'normal');
                     doc.setFontSize(9);
                     doc.setTextColor(...PDF_GRIS_CLARO);
                     doc.text(t('pdfAudioNote'), PDF_MARGEN_X, y + 4);
