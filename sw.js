@@ -1,7 +1,7 @@
 // Service worker del diario.
 // Al subir una versión nueva de la app hay que cambiar VERSION: es lo que
 // invalida la caché anterior y hace que el móvil se baje los archivos nuevos.
-const VERSION = 'diari-v2';
+const VERSION = 'diari-v3';
 
 // Todo lo que la app necesita para arrancar sin red. jsPDF y los TTF no van
 // aquí: solo hacen falta al exportar y son 700 KB que no toca pagar de entrada.

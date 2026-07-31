@@ -20,6 +20,17 @@ Lo único que pide red es el nombre del lugar donde se hizo la foto (se consulta
 OpenStreetMap) y, la primera vez, la exportación a PDF. Sin red, la ubicación se
 guarda igual en coordenadas y el PDF sale por el diálogo de impresión.
 
+## Compartir un diario
+
+Manteniendo pulsado un tomo de la estantería salen dos formas de sacarlo:
+
+- **PDF**, para imprimir o archivar.
+- **Página interactiva**: un único `.html` que **es la propia app** con el diario
+  incrustado y en modo solo lectura. Quien lo recibe pasa páginas, arrastra las
+  fotos de la pila, las ve a pantalla completa y escucha las notas de voz, sin
+  instalar nada y sin conexión. En el móvil se ofrece directamente el menú de
+  compartir del sistema; en escritorio se descarga.
+
 ## Los datos
 
 Se guardan en IndexedDB, en el teléfono, y no salen de ahí. **No hay copia en

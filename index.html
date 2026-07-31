@@ -537,6 +537,13 @@
         .photo-stack .polaroid.encima { cursor: grab; }
         .photo-stack .polaroid.encima:active { cursor: grabbing; }
 
+        /* Modo visor: el archivo que se comparte es esta misma app con el diario
+           incrustado, así que solo hay que esconder lo de editar. */
+        body.modo-visor #library-view,
+        body.modo-visor .visor-oculto { display: none !important; }
+        body.modo-visor #page-title,
+        body.modo-visor #page-text { cursor: default; }
+
         .stack-contador {
             position: absolute;
             right: -6px;
@@ -784,7 +791,7 @@
     <div id="reader-view" class="absolute inset-0 desk-texture z-20 hidden flex flex-col justify-center items-center opacity-0 transition-opacity duration-500">
         
         <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 pointer-events-none">
-            <button onclick="closeBook()" class="pointer-events-auto px-5 py-2 bg-black bg-opacity-60 text-amber-100 border border-amber-900 rounded-full hover:bg-opacity-80 transition flex items-center shadow-xl">
+            <button onclick="closeBook()" class="visor-oculto pointer-events-auto px-5 py-2 bg-black bg-opacity-60 text-amber-100 border border-amber-900 rounded-full hover:bg-opacity-80 transition flex items-center shadow-xl">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 <span data-i18n="closeJournal">Tancar diari</span>
             </button>
@@ -822,7 +829,7 @@
                         <!-- Tira de polaroids: se rellena por JS desde currentPage.photos -->
                         <div id="photos-strip" class="flex flex-wrap justify-center items-start gap-6 mb-6"></div>
 
-                        <div class="flex justify-center gap-3 mb-8">
+                        <div class="visor-oculto flex justify-center gap-3 mb-8">
                             <label class="pill">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h1.6a2 2 0 001.7-.9l.6-1a2 2 0 011.7-.9h2.8a2 2 0 011.7.9l.6 1a2 2 0 001.7.9H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3.2"/></svg>
                                 <span data-i18n="camera">Càmera</span>
@@ -838,10 +845,10 @@
                         </div>
 
                         <div class="w-full max-w-sm mx-auto mb-8 flex justify-center">
-                            <button id="record-btn" onclick="toggleRecording()" class="pill"></button>
+                            <button id="record-btn" onclick="toggleRecording()" class="visor-oculto pill"></button>
 
                             <div id="audio-container" class="hidden w-full rounded-xl p-3 relative border" style="background: rgba(0,0,0,0.035); border-color: #cbbd9b;">
-                                <button onclick="removeAudio()" class="absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition font-sans z-10 border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>
+                                <button onclick="removeAudio()" class="visor-oculto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition font-sans z-10 border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>
                                 <audio id="page-audio" controls class="w-full h-10 outline-none"></audio>
                             </div>
                         </div>
@@ -853,7 +860,7 @@
                             <span class="text-xs ink-soft font-sans tracking-[0.2em]" id="page-indicator">1 / 1</span>
                             <button onclick="nextPage()" class="pill"><span data-i18n="next">Seg.</span> <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
                         </div>
-                        <div class="flex justify-center gap-3 mt-5">
+                        <div class="visor-oculto flex justify-center gap-3 mt-5">
                             <button onclick="addNewPage()" class="pill" data-i18n="addPage">+ Afegir pàgina nova</button>
                             <button onclick="deleteCurrentPage()" class="pill" data-i18n-title="deletePage">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.9 12.1a2 2 0 01-2 1.9H7.9a2 2 0 01-2-1.9L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -1005,7 +1012,8 @@
                 pdfPrintFallbackTitle: 'S\'obrirà la finestra d\'impressió',
                 pdfPrintFallbackMsg: 'Aquest diari no es pot descarregar directament. S\'obrirà el diàleg d\'impressió: tria «Desa com a PDF».',
                 cropTitle: 'Enquadra la foto', cropHint: 'Arrossega per moure, pessiga per ampliar', cropUse: 'Fer servir',
-                install: 'Instal·lar'
+                install: 'Instal·lar',
+                shareTitle: 'Compartir el diari', sharePdf: 'PDF', sharePdfSub: 'Per imprimir o arxivar', shareWeb: 'Pàgina interactiva', shareWebSub: 'Un sol fitxer: es passen pàgines i sonen els àudios', longPressPdf2: 'Mantén premut per compartir'
             },
             es: {
                 appTitle: 'Mis diarios', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Hecho',
@@ -1039,7 +1047,8 @@
                 pdfPrintFallbackTitle: 'Se abrirá la ventana de impresión',
                 pdfPrintFallbackMsg: 'Este diario no se puede descargar directamente. Se abrirá el diálogo de impresión: elige «Guardar como PDF».',
                 cropTitle: 'Encuadra la foto', cropHint: 'Arrastra para mover, pellizca para ampliar', cropUse: 'Usar',
-                install: 'Instalar'
+                install: 'Instalar',
+                shareTitle: 'Compartir el diario', sharePdf: 'PDF', sharePdfSub: 'Para imprimir o archivar', shareWeb: 'Página interactiva', shareWebSub: 'Un solo archivo: se pasan páginas y suenan los audios', longPressPdf2: 'Mantén pulsado para compartir'
             },
             en: {
                 appTitle: 'My journals', export: 'Export', import: 'Import', edit: 'Edit', done: 'Done',
@@ -1073,7 +1082,8 @@
                 pdfPrintFallbackTitle: 'The print window will open',
                 pdfPrintFallbackMsg: 'This journal cannot be downloaded directly. The print dialog will open: choose "Save as PDF".',
                 cropTitle: 'Frame the photo', cropHint: 'Drag to move, pinch to zoom', cropUse: 'Use',
-                install: 'Install'
+                install: 'Install',
+                shareTitle: 'Share the journal', sharePdf: 'PDF', sharePdfSub: 'To print or archive', shareWeb: 'Interactive page', shareWebSub: 'A single file: turn pages and play the audio', longPressPdf2: 'Press and hold to share'
             },
             fr: {
                 appTitle: 'Mes carnets', export: 'Exporter', import: 'Importer', edit: 'Modifier', done: 'Terminé',
@@ -1107,7 +1117,8 @@
                 pdfPrintFallbackTitle: 'La fenêtre d\'impression va s\'ouvrir',
                 pdfPrintFallbackMsg: 'Ce carnet ne peut pas être téléchargé directement. La boîte de dialogue d\'impression va s\'ouvrir : choisissez « Enregistrer au format PDF ».',
                 cropTitle: 'Cadrez la photo', cropHint: 'Faites glisser pour déplacer, pincez pour zoomer', cropUse: 'Utiliser',
-                install: 'Installer'
+                install: 'Installer',
+                shareTitle: 'Partager le carnet', sharePdf: 'PDF', sharePdfSub: 'Pour imprimer ou archiver', shareWeb: 'Page interactive', shareWebSub: 'Un seul fichier : on tourne les pages et les audios se jouent', longPressPdf2: 'Appuyez longuement pour partager'
             },
             de: {
                 appTitle: 'Meine Tagebücher', export: 'Exportieren', import: 'Importieren', edit: 'Bearbeiten', done: 'Fertig',
@@ -1141,7 +1152,8 @@
                 pdfPrintFallbackTitle: 'Das Druckfenster wird geöffnet',
                 pdfPrintFallbackMsg: 'Dieses Tagebuch lässt sich nicht direkt herunterladen. Der Druckdialog wird geöffnet: wähle dort „Als PDF sichern".',
                 cropTitle: 'Foto ausrichten', cropHint: 'Ziehen zum Verschieben, Zoomen mit zwei Fingern', cropUse: 'Verwenden',
-                install: 'Installieren'
+                install: 'Installieren',
+                shareTitle: 'Tagebuch teilen', sharePdf: 'PDF', sharePdfSub: 'Zum Drucken oder Archivieren', shareWeb: 'Interaktive Seite', shareWebSub: 'Eine einzige Datei: blättern und Sprachnotizen hören', longPressPdf2: 'Zum Teilen gedrückt halten'
             },
             zh: {
                 appTitle: '我的日记', export: '导出', import: '导入', edit: '编辑', done: '完成',
@@ -1175,7 +1187,8 @@
                 pdfPrintFallbackTitle: '将打开打印窗口',
                 pdfPrintFallbackMsg: '本日记无法直接下载。将打开打印对话框：请选择「存储为 PDF」。',
                 cropTitle: '调整取景', cropHint: '拖动移动，双指缩放', cropUse: '使用',
-                install: '安装'
+                install: '安装',
+                shareTitle: '分享日记', sharePdf: 'PDF', sharePdfSub: '用于打印或存档', shareWeb: '交互式页面', shareWebSub: '单个文件：可翻页、可播放录音', longPressPdf2: '长按以分享'
             }
         };
 
@@ -1373,7 +1386,7 @@
                 } else {
                     cont.innerHTML = items.map((it, i) =>
                         `<button data-idx="${i}" class="w-full text-left px-3 py-3 rounded-lg hover:bg-amber-50 transition border-b border-gray-100 last:border-0 flex items-center gap-3">
-                            <span class="text-amber-600 shrink-0">🔖</span>
+                            <span class="text-amber-600 shrink-0">${it.icono || '🔖'}</span>
                             <span class="min-w-0">
                                 <span class="block font-medium text-gray-800 truncate">${escapeHtml(it.label)}</span>
                                 <span class="block text-xs text-gray-500">${escapeHtml(it.sub)}</span>
@@ -1418,11 +1431,28 @@
             return j;
         }
 
+        // Cuando este archivo es una copia compartida, el diario viene incrustado
+        // en window.__DIARIO y no hay base de datos ni nada que editar.
+        const esVisor = typeof window.__DIARIO === 'object' && window.__DIARIO !== null;
+
         window.onload = async function() {
             try {
                 const guardado = localStorage.getItem(LANG_KEY);
                 if(guardado && I18N[guardado]) lang = guardado;
             } catch(e) { /* modo privado */ }
+
+            if(esVisor) {
+                if(window.__DIARIO.lang && I18N[window.__DIARIO.lang]) lang = window.__DIARIO.lang;
+                journals = [normalizeJournal(window.__DIARIO.journal)];
+                document.body.classList.add('modo-visor');
+                document.getElementById('page-title').readOnly = true;
+                document.getElementById('page-text').readOnly = true;
+                document.title = journals[0].title;
+                applyTranslations();
+                initFlipGestures();
+                openJournal(journals[0]);
+                return;
+            }
 
             try {
                 journals = (await getJournals()).map(normalizeJournal);
@@ -1524,8 +1554,8 @@
                     book.appendChild(editBtn);
                 } else {
                     book.onclick = () => openJournal(journal);
-                    book.title = t('longPressPdf');
-                    attachLongPress(book, () => exportJournalPdf(journal.id));
+                    book.title = t('longPressPdf2');
+                    attachLongPress(book, () => menuCompartir(journal.id));
                 }
 
                 slot.appendChild(book);
@@ -2142,6 +2172,79 @@
             doc.save(nombreArchivoPdf(journal.title));
         }
 
+        // --- Compartir el diario como página interactiva ---
+        // El archivo que sale es esta misma app con el diario incrustado y en modo
+        // solo lectura: se pasan páginas, se arrastran las fotos y suenan los
+        // audios igual, sin instalar nada y sin conexión. Por eso no se duplica
+        // nada de la app; solo se le pegan dentro los recursos externos.
+        async function exportarVisor(id) {
+            const journal = journals.find(j => j.id === id);
+            if(!journal) return;
+            if(currentJournal && currentJournal.id === id) await flushSave();
+
+            const texto = async (url) => (await fetch(url)).text();
+            const base64 = async (url) => {
+                const b = new Uint8Array(await (await fetch(url)).arrayBuffer());
+                let s = '';
+                const trozo = 8192;
+                for(let i = 0; i < b.length; i += trozo) s += String.fromCharCode.apply(null, b.subarray(i, i + trozo));
+                return btoa(s);
+            };
+
+            let html = await texto('index.html');
+            const css = await texto('assets/tailwind.css');
+
+            // Tailwind y las fuentes van dentro: el archivo tiene que abrirse solo
+            html = html.replace('<link rel="stylesheet" href="assets/tailwind.css">', `<style>${css}</style>`);
+            for(const f of ['caveat-latin', 'caveat-latin-ext', 'cormorant-latin', 'cormorant-latin-ext']) {
+                html = html.replace(`url('assets/fonts/${f}.woff2')`,
+                    `url(data:font/woff2;base64,${await base64('assets/fonts/' + f + '.woff2')})`);
+            }
+
+            // Fuera lo que no tiene sentido en una copia suelta
+            html = html.replace('<link rel="manifest" href="manifest.webmanifest">', '')
+                       .replace('<link rel="apple-touch-icon" href="assets/icons/icon-180.png">', '')
+                       .replace('<link rel="icon" href="assets/icons/icon-192.png">', '');
+
+            const datos = JSON.stringify({ journal, lang })
+                .replace(/</g, '\\u003c')   // que no se cierre el <script> desde dentro
+                .replace(/[\u2028\u2029]/g, m => '\\u' + m.charCodeAt(0).toString(16));
+            html = html.replace('<body>', `<body>\n<script>window.__DIARIO = ${datos};<\/script>`);
+
+            const archivo = new File([html], nombreArchivoVisor(journal.title), { type: 'text/html' });
+
+            // En el móvil, directo a Compartir; en escritorio, descarga
+            if(navigator.canShare && navigator.canShare({ files: [archivo] })) {
+                try {
+                    await navigator.share({ files: [archivo], title: journal.title });
+                    return;
+                } catch(err) {
+                    if(err && err.name === 'AbortError') return;
+                }
+            }
+            const url = URL.createObjectURL(archivo);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = archivo.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function nombreArchivoVisor(titulo) {
+            const limpio = String(titulo).replace(/[\\/:*?"<>|]/g, '-').trim();
+            return (limpio || 'diari') + '.html';
+        }
+
+        // La pulsación larga ofrece las dos formas de sacar el diario
+        function menuCompartir(id) {
+            Modal.showList(t('shareTitle'), [
+                { icono: '📄', label: t('sharePdf'), sub: t('sharePdfSub'), onPick: () => exportJournalPdf(id) },
+                { icono: '✨', label: t('shareWeb'), sub: t('shareWebSub'), onPick: () => exportarVisor(id) }
+            ], '');
+        }
+
         let exportandoPdf = false;
 
         async function exportJournalPdf(id) {
@@ -2569,7 +2672,7 @@
                 const t = `translate(${d * 11}px, ${d * 9}px) rotate(${photoTilt(i) + d * 1.5}deg) scale(${1 - d * 0.03})`;
                 html += `
                     <div class="polaroid polaroid-thumb ${encima ? 'encima' : ''}" data-idx="${i}" style="transform: ${t}; z-index: ${20 - d}">
-                        ${encima ? `<button data-idx="${i}" class="quitar-foto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition z-10 font-sans border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>` : ''}
+                        ${encima && !esVisor ? `<button data-idx="${i}" class="quitar-foto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition z-10 font-sans border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>` : ''}
                         <img class="w-full h-auto rounded-sm" src="${fotos[i]}" alt="" draggable="false">
                     </div>`;
             }
