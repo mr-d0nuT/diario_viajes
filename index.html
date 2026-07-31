@@ -4,16 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Diario de Viaje Hiperrealista</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Así font-serif y font-hand de Tailwind ya apuntan a las fuentes del diario
-        tailwind.config = {
-            theme: { extend: { fontFamily: {
-                serif: ['Cormorant Garamond', 'Georgia', 'serif'],
-                hand: ['Caveat', 'Segoe Script', 'cursive']
-            } } }
-        };
-    </script>
+    <!-- Tailwind compilado a un CSS local: el CDN compilaba en cada arranque y
+         dejaba la app sin estilos en cuanto no había red. Para regenerarlo:
+         npx tailwindcss@3 -c tailwind.config.js -i tailwind.in.css -o assets/tailwind.css --minify -->
+    <link rel="stylesheet" href="assets/tailwind.css">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#241a13">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Diari de viatge">
+    <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+    <link rel="icon" href="assets/icons/icon-192.png">
     <style>
         /* Fuentes vendorizadas en assets/fonts (SIL OFL 1.1): sin ellas la app
            dependería de la red para tener su propia letra. */
@@ -719,6 +721,9 @@
                     ⤒<span class="hidden sm:inline ml-1" data-i18n="import">Importar</span>
                     <input type="file" accept="application/json,.json" hidden onchange="handleImportFile(event)">
                 </label>
+                <button onclick="instalarApp()" id="install-btn" class="hidden text-amber-200 hover:text-white transition font-medium whitespace-nowrap" data-i18n-title="install">
+                    ⤋<span class="hidden sm:inline ml-1" data-i18n="install">Instal·lar</span>
+                </button>
                 <button onclick="toggleEditMode()" id="edit-btn" class="text-amber-200 hover:text-white transition font-medium whitespace-nowrap">
                     ✎<span class="hidden sm:inline ml-1" data-i18n="edit">Editar</span>
                 </button>
@@ -957,7 +962,8 @@
                 pdfAudioNote: 'Aquesta pàgina té una nota de veu, que només es pot escoltar a l\'app.',
                 pdfPrintFallbackTitle: 'S\'obrirà la finestra d\'impressió',
                 pdfPrintFallbackMsg: 'Aquest diari no es pot descarregar directament. S\'obrirà el diàleg d\'impressió: tria «Desa com a PDF».',
-                cropTitle: 'Enquadra la foto', cropHint: 'Arrossega per moure, pessiga per ampliar', cropUse: 'Fer servir'
+                cropTitle: 'Enquadra la foto', cropHint: 'Arrossega per moure, pessiga per ampliar', cropUse: 'Fer servir',
+                install: 'Instal·lar'
             },
             es: {
                 appTitle: 'Mis diarios', export: 'Exportar', import: 'Importar', edit: 'Editar', done: 'Hecho',
@@ -990,7 +996,8 @@
                 pdfAudioNote: 'Esta página tiene una nota de voz, que solo se puede escuchar en la app.',
                 pdfPrintFallbackTitle: 'Se abrirá la ventana de impresión',
                 pdfPrintFallbackMsg: 'Este diario no se puede descargar directamente. Se abrirá el diálogo de impresión: elige «Guardar como PDF».',
-                cropTitle: 'Encuadra la foto', cropHint: 'Arrastra para mover, pellizca para ampliar', cropUse: 'Usar'
+                cropTitle: 'Encuadra la foto', cropHint: 'Arrastra para mover, pellizca para ampliar', cropUse: 'Usar',
+                install: 'Instalar'
             },
             en: {
                 appTitle: 'My journals', export: 'Export', import: 'Import', edit: 'Edit', done: 'Done',
@@ -1023,7 +1030,8 @@
                 pdfAudioNote: 'This page has a voice note, which can only be played in the app.',
                 pdfPrintFallbackTitle: 'The print window will open',
                 pdfPrintFallbackMsg: 'This journal cannot be downloaded directly. The print dialog will open: choose "Save as PDF".',
-                cropTitle: 'Frame the photo', cropHint: 'Drag to move, pinch to zoom', cropUse: 'Use'
+                cropTitle: 'Frame the photo', cropHint: 'Drag to move, pinch to zoom', cropUse: 'Use',
+                install: 'Install'
             },
             fr: {
                 appTitle: 'Mes carnets', export: 'Exporter', import: 'Importer', edit: 'Modifier', done: 'Terminé',
@@ -1056,7 +1064,8 @@
                 pdfAudioNote: 'Cette page contient une note vocale, qui ne peut être écoutée que dans l\'application.',
                 pdfPrintFallbackTitle: 'La fenêtre d\'impression va s\'ouvrir',
                 pdfPrintFallbackMsg: 'Ce carnet ne peut pas être téléchargé directement. La boîte de dialogue d\'impression va s\'ouvrir : choisissez « Enregistrer au format PDF ».',
-                cropTitle: 'Cadrez la photo', cropHint: 'Faites glisser pour déplacer, pincez pour zoomer', cropUse: 'Utiliser'
+                cropTitle: 'Cadrez la photo', cropHint: 'Faites glisser pour déplacer, pincez pour zoomer', cropUse: 'Utiliser',
+                install: 'Installer'
             },
             de: {
                 appTitle: 'Meine Tagebücher', export: 'Exportieren', import: 'Importieren', edit: 'Bearbeiten', done: 'Fertig',
@@ -1089,7 +1098,8 @@
                 pdfAudioNote: 'Diese Seite enthält eine Sprachnotiz, die sich nur in der App abspielen lässt.',
                 pdfPrintFallbackTitle: 'Das Druckfenster wird geöffnet',
                 pdfPrintFallbackMsg: 'Dieses Tagebuch lässt sich nicht direkt herunterladen. Der Druckdialog wird geöffnet: wähle dort „Als PDF sichern".',
-                cropTitle: 'Foto ausrichten', cropHint: 'Ziehen zum Verschieben, Zoomen mit zwei Fingern', cropUse: 'Verwenden'
+                cropTitle: 'Foto ausrichten', cropHint: 'Ziehen zum Verschieben, Zoomen mit zwei Fingern', cropUse: 'Verwenden',
+                install: 'Installieren'
             },
             zh: {
                 appTitle: '我的日记', export: '导出', import: '导入', edit: '编辑', done: '完成',
@@ -1122,7 +1132,8 @@
                 pdfAudioNote: '本页含有语音笔记，只能在应用中播放。',
                 pdfPrintFallbackTitle: '将打开打印窗口',
                 pdfPrintFallbackMsg: '本日记无法直接下载。将打开打印对话框：请选择「存储为 PDF」。',
-                cropTitle: '调整取景', cropHint: '拖动移动，双指缩放', cropUse: '使用'
+                cropTitle: '调整取景', cropHint: '拖动移动，双指缩放', cropUse: '使用',
+                install: '安装'
             }
         };
 
@@ -1379,7 +1390,47 @@
             }
             applyTranslations();
             initFlipGestures();
+            prepararInstalacion();
         };
+
+        // --- Instalable y sin conexión ---
+        let promptInstalacion = null;
+
+        function prepararInstalacion() {
+            // El service worker solo tiene sentido servido por http(s); abriendo el
+            // archivo en local ni siquiera está permitido registrarlo.
+            if('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker no registrado', err));
+            }
+
+            // Sin esto el navegador puede borrar los diarios cuando le falte espacio.
+            // No se le pide al usuario: si el navegador quiere preguntar, pregunta él.
+            if(navigator.storage && navigator.storage.persist) {
+                navigator.storage.persisted()
+                    .then(ya => ya ? true : navigator.storage.persist())
+                    .then(ok => { if(!ok) console.info('El almacenamiento no es persistente; el navegador podría liberarlo.'); })
+                    .catch(() => {});
+            }
+
+            // Android ofrece instalar; iOS no, y allí se hace desde Compartir.
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                promptInstalacion = e;
+                document.getElementById('install-btn').classList.remove('hidden');
+            });
+            window.addEventListener('appinstalled', () => {
+                promptInstalacion = null;
+                document.getElementById('install-btn').classList.add('hidden');
+            });
+        }
+
+        async function instalarApp() {
+            if(!promptInstalacion) return;
+            promptInstalacion.prompt();
+            await promptInstalacion.userChoice;
+            promptInstalacion = null;
+            document.getElementById('install-btn').classList.add('hidden');
+        }
 
         function renderLibrary() {
             const container = document.getElementById('library-shelves');
