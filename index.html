@@ -510,6 +510,48 @@
         /* Las fotos son 1:1, así que la ventana también */
         .polaroid img { aspect-ratio: 1 / 1; object-fit: cover; cursor: zoom-in; }
 
+        /* Pila de fotos: van una sobre otra, asomando las de abajo */
+        .photo-stack {
+            position: relative;
+            width: fit-content;
+            margin: 0 auto 1.5rem;
+            padding: 0 24px 22px 0;   /* hueco para las esquinas que asoman */
+            touch-action: pan-y;      /* el scroll vertical sigue siendo del navegador */
+        }
+        .photo-stack .polaroid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: center center;
+            will-change: transform;
+        }
+        /* La de encima va en el flujo, así el hueco lo reserva ella */
+        .photo-stack .polaroid.encima {
+            position: relative;
+            z-index: 20;
+        }
+        .photo-stack .polaroid.animando {
+            transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.42s;
+        }
+        .photo-stack .polaroid:not(.encima) img { cursor: default; }
+        .photo-stack .polaroid.encima { cursor: grab; }
+        .photo-stack .polaroid.encima:active { cursor: grabbing; }
+
+        .stack-contador {
+            position: absolute;
+            right: -6px;
+            bottom: -10px;
+            z-index: 30;
+            padding: 2px 9px;
+            border-radius: 999px;
+            background: rgba(43, 48, 64, 0.82);
+            color: #f6efdb;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            pointer-events: none;
+        }
+
         /* Recortador 1:1 */
         #crop-frame {
             position: relative;
@@ -2186,7 +2228,8 @@
             document.getElementById('page-title').value = currentPage.title || '';
             document.getElementById('page-text').value = currentPage.text || '';
             
-            // Fotos
+            // Fotos: cada página abre su pila por la primera
+            pilaTop = 0;
             renderPhotosStrip();
 
             // Metadatos (Geoloc, fecha)
@@ -2332,16 +2375,22 @@
 
         function replicaHtml(page) {
             if(!page) return '';
-            const fotos = (page.photos || []).slice(0, 3).map((src, i) =>
-                `<div class="polaroid polaroid-thumb" style="transform: rotate(${photoTilt(i)}deg)"><img class="w-full h-auto object-cover rounded-sm" src="${src}" alt=""></div>`
-            ).join('');
+            // Misma pila que en la página real, pero quieta
+            const todas = page.photos || [];
+            const capas = Math.min(3, todas.length);
+            let pila = '';
+            for(let d = capas - 1; d >= 0; d--) {
+                const t = `translate(${d * 11}px, ${d * 9}px) rotate(${photoTilt(d) + d * 1.5}deg) scale(${1 - d * 0.03})`;
+                pila += `<div class="polaroid polaroid-thumb ${d === 0 ? 'encima' : ''}" style="transform: ${t}; z-index: ${20 - d}"><img class="w-full h-auto rounded-sm" src="${todas[d]}" alt=""></div>`;
+            }
+            const fotos = todas.length ? `<div class="photo-stack">${pila}</div>` : '';
             const audio = page.audio
                 ? `<div class="w-full max-w-sm mx-auto mb-6 bg-gray-200 rounded-xl p-4 border border-gray-300 text-center text-gray-500 font-sans text-sm">▶ ▬▬▬▬▬▬▬▬▬▬</div>`
                 : '';
             return `
                 <h2 class="text-4xl md:text-5xl font-serif ink mb-6 text-center font-bold">${escapeHtml(page.title || '')}</h2>
                 ${page.date ? `<p class="text-center text-sm ink-soft font-sans -mt-3 mb-8">${escapeHtml([page.date, page.time, page.locationName].filter(Boolean).join(' · '))}</p>` : ''}
-                <div class="flex flex-wrap justify-center items-start gap-6 mb-6">${fotos}</div>
+                ${fotos}
                 ${audio}
                 <div class="hand-text custom-lines whitespace-pre-wrap p-1">${escapeHtml(page.text || '')}</div>
             `;
@@ -2497,21 +2546,111 @@
             return [-3, 2, -1.5, 3, -2.5, 1][i % 6];
         }
 
+        // Cuál de las fotos está encima de la pila. Es solo presentación: el orden
+        // guardado en la página no cambia al pasarlas.
+        let pilaTop = 0;
+        const PILA_VISIBLES = 3;   // cuántas asoman por debajo
+
         function renderPhotosStrip() {
             const strip = document.getElementById('photos-strip');
             const fotos = (currentPage && currentPage.photos) || [];
-            strip.innerHTML = fotos.map((src, i) => `
-                <div class="polaroid polaroid-thumb relative transition duration-300 hover:rotate-0" style="transform: rotate(${photoTilt(i)}deg)">
-                    <button data-idx="${i}" class="quitar-foto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition z-10 font-sans border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>
-                    <img data-idx="${i}" class="w-full h-auto rounded-sm" src="${src}" alt="">
-                </div>
-            `).join('');
-            strip.querySelectorAll('.quitar-foto').forEach(b => {
-                b.onclick = () => removePhoto(Number(b.dataset.idx));
+
+            if(fotos.length === 0) { strip.innerHTML = ''; strip.className = ''; return; }
+            if(pilaTop >= fotos.length) pilaTop = 0;
+
+            strip.className = 'photo-stack';
+            const capas = Math.min(PILA_VISIBLES, fotos.length);
+
+            // De la más profunda a la de encima, para que el orden del DOM ya apile bien
+            let html = '';
+            for(let d = capas - 1; d >= 0; d--) {
+                const i = (pilaTop + d) % fotos.length;
+                const encima = d === 0;
+                const t = `translate(${d * 11}px, ${d * 9}px) rotate(${photoTilt(i) + d * 1.5}deg) scale(${1 - d * 0.03})`;
+                html += `
+                    <div class="polaroid polaroid-thumb ${encima ? 'encima' : ''}" data-idx="${i}" style="transform: ${t}; z-index: ${20 - d}">
+                        ${encima ? `<button data-idx="${i}" class="quitar-foto absolute -top-2.5 -right-2.5 rounded-full w-6 h-6 flex items-center justify-center text-xs transition z-10 font-sans border" style="background:#f6efdb; border-color:#cbbd9b; color:#5d6274">✕</button>` : ''}
+                        <img class="w-full h-auto rounded-sm" src="${fotos[i]}" alt="" draggable="false">
+                    </div>`;
+            }
+            if(fotos.length > 1) {
+                html += `<span class="stack-contador">${(pilaTop % fotos.length) + 1} / ${fotos.length}</span>`;
+            }
+            strip.innerHTML = html;
+
+            const arriba = strip.querySelector('.polaroid.encima');
+            const btn = arriba.querySelector('.quitar-foto');
+            if(btn) btn.onclick = (e) => { e.stopPropagation(); removePhoto(Number(btn.dataset.idx)); };
+
+            initPilaGesto(arriba, fotos.length);
+        }
+
+        // Arrastrar la de encima la manda al fondo y descubre la siguiente.
+        // Un toque sin arrastre abre la foto a pantalla completa.
+        function initPilaGesto(carta, total) {
+            const base = carta.style.transform;
+            let inicio = null;
+            let arrastrando = false;
+
+            const soltarCarta = () => {
+                carta.classList.add('animando');
+                carta.style.transform = base;
+                setTimeout(() => carta.classList.remove('animando'), 430);
+            };
+
+            carta.addEventListener('pointerdown', (e) => {
+                if(e.pointerType === 'mouse' && e.button !== 0) return;
+                if(e.target.closest('.quitar-foto')) return;
+                inicio = { x: e.clientX, y: e.clientY };
+                arrastrando = false;
+                try { carta.setPointerCapture(e.pointerId); } catch(err) { /* sin captura */ }
             });
-            strip.querySelectorAll('img').forEach(im => {
-                im.onclick = () => openLightbox(im.src);
+
+            carta.addEventListener('pointermove', (e) => {
+                if(!inicio) return;
+                const dx = e.clientX - inicio.x;
+                const dy = e.clientY - inicio.y;
+
+                if(!arrastrando) {
+                    // Vertical: es scroll de la página, se suelta el gesto
+                    if(Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { inicio = null; return; }
+                    if(Math.abs(dx) < 5) return;
+                    if(total < 2) { inicio = null; return; }
+                    arrastrando = true;
+                }
+                if(e.cancelable) e.preventDefault();
+                carta.style.transform = `${base} translate(${dx}px, ${dy * 0.25}px) rotate(${dx / 18}deg)`;
             });
+
+            const fin = (e) => {
+                if(!inicio) return;
+                const dx = e.clientX - inicio.x;
+                const dy = e.clientY - inicio.y;
+                const eraArrastre = arrastrando;
+                inicio = null;
+                arrastrando = false;
+
+                if(!eraArrastre) {
+                    // Toque limpio: a pantalla completa
+                    if(Math.abs(dx) < 5 && Math.abs(dy) < 5) openLightbox(carta.querySelector('img').src);
+                    return;
+                }
+
+                if(Math.abs(dx) < 55) { soltarCarta(); return; }
+
+                // Sale de la pila hacia donde iba el dedo y vuelve por debajo
+                const signo = dx > 0 ? 1 : -1;
+                carta.classList.add('animando');
+                carta.style.transform = `${base} translate(${signo * 460}px, ${dy * 0.25}px) rotate(${signo * 28}deg)`;
+                carta.style.opacity = '0';
+                setTimeout(() => {
+                    pilaTop = (pilaTop + 1) % total;
+                    renderPhotosStrip();
+                }, 300);
+            };
+
+            carta.addEventListener('pointerup', fin);
+            carta.addEventListener('pointercancel', () => { if(inicio && arrastrando) soltarCarta(); inicio = null; arrastrando = false; });
         }
 
         const FOTO_LADO = 800;   // lado del cuadrado que se guarda
